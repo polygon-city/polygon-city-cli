@@ -2,7 +2,7 @@
 
 ## Usage
 
-```
+```bash
 $ node index -e <epsg_code> -m <mapzen_elevation_key> -o /path/to/obj/output/directory /path/to/cityGml/file.xml
 ```
 
@@ -15,6 +15,6 @@ $ node index -e <epsg_code> -m <mapzen_elevation_key> -o /path/to/obj/output/dir
 5. [Get a Mapzen Elevation key](https://mapzen.com/developers)
 6. Run the command line tool&hellip;
 
-```
-node index -e 31255 -m "your_mapzen_key" -o /path/to/obj/output/directory /path/to/cityGml/file.xml
+```bash
+$ node index -e 31255 -m "your_mapzen_key" -o /path/to/obj/output/directory /path/to/cityGml/file.xml
 ```
