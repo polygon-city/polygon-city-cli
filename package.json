@@ -1,0 +1,32 @@
+{
+  "name": "polygon-city-cli",
+  "version": "0.1.0",
+  "description": "Polygon City CLI",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robin Hawkes <rob@vizicities.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.0.6",
+    "bull": "^0.6.0",
+    "chalk": "^1.1.1",
+    "citygml-boundaries": "^0.1.1",
+    "citygml-points": "^0.1.1",
+    "citygml-polygons": "^0.1.1",
+    "citygml-validate-shell": "^0.1.25",
+    "commander": "^2.9.0",
+    "fs-extra": "^0.26.2",
+    "lodash": "^3.10.1",
+    "polygons-to-obj": "^0.1.6",
+    "proj4": "^2.3.12",
+    "request": "^2.67.0",
+    "sax": "^1.1.4",
+    "saxpath": "^0.6.3",
+    "triangulate": "^0.1.5",
+    "uuid": "^2.0.1",
+    "xmldom": "^0.1.19",
+    "xmldom-to-xml": "^0.1.1"
+  }
+}
