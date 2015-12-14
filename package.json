@@ -2,12 +2,20 @@
   "name": "polygon-city-cli",
   "version": "0.1.0",
   "description": "Polygon City CLI",
+  "homepage": "https://github.com/polygon-city/polygon-city-cli",
   "preferGlobal": true,
   "bin": {
     "polygon-city": "index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/polygon-city/polygon-city-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/polygon-city/polygon-city-cli/issues"
   },
   "author": "Robin Hawkes <rob@vizicities.com>",
   "license": "MIT",
