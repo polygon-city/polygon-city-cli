@@ -19,8 +19,11 @@ var onQueueError = function(err) {
   process.exit(1);
 };
 
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
 // Set stream queue up manually as otherwise the worker triggers an error
-var streamBuildingsQueue = Queue('stream_buildings_queue', 6379, '127.0.0.1');
+var streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
 
 streamBuildingsQueue.on('failed', onQueueFailed);
 // Likely a problem connecting to Redis

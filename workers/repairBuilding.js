@@ -7,7 +7,10 @@ var citygmlBoundaries = require('citygml-boundaries');
 var citygmlPoints = require('citygml-points');
 var citygmlValidateShell = Promise.promisify(require('citygml-validate-shell'));
 
-var triangulateBuildingQueue = Queue('triangulate_building_queue', 6379, '127.0.0.1');
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var triangulateBuildingQueue = Queue('triangulate_building_queue', redisPort, redisHost);
 
 var repair = function(polygons, validationResults) {
   // Repair CityGML

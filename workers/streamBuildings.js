@@ -11,7 +11,10 @@ var domParser = new DOMParser();
 // TODO: Work out a way to properly handle these errors
 var strict = true;
 
-var repairBuildingQueue = Queue('repair_building_queue', 6379, '127.0.0.1');
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var repairBuildingQueue = Queue('repair_building_queue', redisPort, redisHost);
 
 var worker = function(job, done) {
   var dom = require('domain').create();
