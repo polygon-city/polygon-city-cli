@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+
 var Promise = require('bluebird');
 var program = require('commander');
 var chalk = require('chalk');

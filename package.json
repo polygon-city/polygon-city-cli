@@ -2,7 +2,10 @@
   "name": "polygon-city-cli",
   "version": "0.1.0",
   "description": "Polygon City CLI",
-  "main": "index.js",
+  "preferGlobal": true,
+  "bin": {
+    "polygon-city": "index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
