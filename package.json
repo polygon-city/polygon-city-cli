@@ -1,6 +1,6 @@
 {
   "name": "polygon-city-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Polygon City CLI",
   "homepage": "https://github.com/polygon-city/polygon-city-cli",
   "preferGlobal": true,
@@ -37,6 +37,7 @@
     "sax": "^1.1.4",
     "saxpath": "^0.6.3",
     "triangulate": "^0.1.5",
+    "turf": "^2.0.2",
     "uuid": "^2.0.1",
     "xmldom": "^0.1.19",
     "xmldom-to-xml": "^0.1.1"
