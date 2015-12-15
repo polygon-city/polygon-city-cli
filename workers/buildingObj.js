@@ -1,8 +1,15 @@
+var _ = require('lodash');
 var Promise = require('bluebird');
+var Queue = require('bull');
 var chalk = require('chalk');
 var polygons2obj = require('polygons-to-obj');
 var path = require('path');
 var fs = Promise.promisifyAll(require('fs-extra'));
+
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var convertObjQueue = Queue('convert_obj_queue', redisPort, redisHost);
 
 var worker = function(job, done) {
   var data = job.data;
@@ -21,6 +28,14 @@ var worker = function(job, done) {
   // Save OBJ file
   fs.outputFileAsync(outputPath, objStr).then(function() {
     console.log(chalk.green('Saved file:', outputPath));
+
+    // Append data onto job payload
+    _.extend(data, {
+      objPath: outputPath
+    });
+
+    convertObjQueue.add(data);
+
     done();
   }).catch(function(err) {
     console.error(err);

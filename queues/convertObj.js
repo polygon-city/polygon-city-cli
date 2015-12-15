@@ -1,5 +1,5 @@
 var Queue = require('bull');
-var worker = require('../workers/buildingElevation');
+var worker = require('../workers/convertObj');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));
@@ -18,7 +18,7 @@ var onCompleted = function(job, data) {
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var queue = Queue('building_elevation_queue', redisPort, redisHost);
+var queue = Queue('convert_obj_queue', redisPort, redisHost);
 queue.on('failed', onQueueFailed);
 queue.on('error', onQueueError);
 queue.on('completed', onCompleted);

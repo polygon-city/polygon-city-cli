@@ -1,6 +1,6 @@
 {
   "name": "polygon-city-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Polygon City CLI",
   "homepage": "https://github.com/polygon-city/polygon-city-cli",
   "preferGlobal": true,
@@ -30,6 +30,7 @@
     "commander": "^2.9.0",
     "fs-extra": "^0.26.2",
     "lodash": "^3.10.1",
+    "model-converter": "0.0.4",
     "polygons-to-obj": "^0.1.6",
     "proj4": "^2.3.12",
     "request": "^2.67.0",

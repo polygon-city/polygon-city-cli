@@ -19,6 +19,10 @@ var onQueueError = function(err) {
   process.exit(1);
 };
 
+var onCompleted = function(job, data) {
+  job.remove();
+};
+
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
@@ -26,6 +30,7 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 var streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
 
 streamBuildingsQueue.on('failed', onQueueFailed);
+streamBuildingsQueue.on('completed', onCompleted);
 // Likely a problem connecting to Redis
 streamBuildingsQueue.on('error', onQueueError);
 
@@ -50,6 +55,7 @@ createQueue('repairBuilding', 3);
 createQueue('triangulateBuilding', 3);
 createQueue('buildingElevation', 5);
 createQueue('buildingObj', 3);
+createQueue('convertObj', 3);
 
 var getProj4Def = function(epsgCode) {
   return request('http://epsg.io/?q=' + epsgCode + '&format=json').then(function(response) {
