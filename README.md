@@ -24,3 +24,5 @@ $ polygon-city -e <epsg_code> -m <mapzen_elevation_key> -o /path/to/obj/output/d
 ```bash
 $ polygon-city -e 31255 -m "your_mapzen_key" -o /path/to/obj/output/directory /path/to/cityGml/file.xml
 ```
+
+Remember to exit the process when it's finished outputting files (eg. `ctrl + c`) otherwise the process will stay open indefinitely. This is a known limitation until we come up with an automated approach for knowing when everything has finished processing.
