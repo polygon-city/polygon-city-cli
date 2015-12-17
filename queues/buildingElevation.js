@@ -1,5 +1,5 @@
 var Queue = require('bull');
-var worker = require('../workers/buildingElevation');
+var worker = require(__dirname + '/../workers/buildingElevation');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));

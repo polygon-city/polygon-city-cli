@@ -1,5 +1,5 @@
 var Queue = require('bull');
-var worker = require('../workers/convertObj');
+var worker = require(__dirname + '/../workers/convertObj');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));

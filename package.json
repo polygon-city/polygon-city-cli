@@ -1,6 +1,6 @@
 {
   "name": "polygon-city-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Polygon City CLI",
   "homepage": "https://github.com/polygon-city/polygon-city-cli",
   "preferGlobal": true,

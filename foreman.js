@@ -34,7 +34,7 @@ streamBuildingsQueue.on('completed', onCompleted);
 // Likely a problem connecting to Redis
 streamBuildingsQueue.on('error', onQueueError);
 
-var streamBuildingsWorker = require('./workers/streamBuildings');
+var streamBuildingsWorker = require(__dirname + '/workers/streamBuildings');
 streamBuildingsQueue.process(streamBuildingsWorker);
 
 var processes = [];
@@ -47,7 +47,7 @@ var createQueue = function(name, workerCount) {
   var count = workerCount || 1;
 
   while (count--) {
-    processes.push(childProcess.fork('./queues/' + name));
+    processes.push(childProcess.fork(__dirname + '/queues/' + name));
   }
 };
 
