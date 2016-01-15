@@ -171,6 +171,10 @@ var worker = function(job, done) {
     // Compile GeoJSON index of footprints
     createFootprintIndex(footprints, outputPath).then(function() {
       console.log(chalk.green('Saved GeoJSON index'));
+
+      // Remove streamed buildings set
+      redis.del('polygoncity:job:' + id + ':streamed_buildings');
+
       done();
     }).catch(function(err) {
       console.error(err);
