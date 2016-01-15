@@ -14,8 +14,16 @@ $ npm install polygon-city-cli -g
 
 ## Usage
 
+Processing a new CityGML file:
+
 ```bash
 $ polygon-city -e <epsg_code> -m <mapzen_elevation_key> -o /path/to/obj/output/directory /path/to/cityGml/file.xml
+```
+
+Resuming previous unfinished jobs:
+
+```bash
+$ polygon-city resume
 ```
 
 ## Step-by-step example
