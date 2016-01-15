@@ -88,10 +88,12 @@ var getProj4Def = function(epsgCode) {
 var foreman = {
   resumeJobs: function() {
     setupQueues();
+    checkJobCompletion();
   },
 
   startJob: function(inputPath, outputPath, epsgCode, mapzenKey) {
     setupQueues();
+    checkJobCompletion();
 
     // Generate unique ID for the file
     var id = UUID.v4();
@@ -125,12 +127,39 @@ var foreman = {
   },
 };
 
-var onExit = function() {
-  processes.forEach(function(child) {
-    child.kill();
-  });
+var checkJobCompletion = function() {
+  redis.lrange('polygoncity:jobs', 0, -1).then(function(result) {
+    result.forEach(function(id) {
+      redis.hget('polygoncity:job:' + id, 'completed').then(function(completed) {
+        if (completed == 1) {
+          redis.del('polygoncity:job:' + id);
+          redis.lrem('polygoncity:jobs', 0, id);
+        }
+      });
+    });
 
-  process.exit(1);
+    redis.llen('polygoncity:jobs').then(function(count) {
+      if (count == 0) {
+        console.error(chalk.blue('Finished all jobs'));
+        process.exit(1);
+      } else {
+        setTimeout(checkJobCompletion, 1000);
+      }
+    });
+  });
+};
+
+var onExit = function() {
+  console.log(chalk.red('Exiting...'));
+
+  // Delay exit to let any async / Redis commands catch up
+  setTimeout(function() {
+    processes.forEach(function(child) {
+      child.kill();
+    });
+
+    process.exit(1);
+  }, 2000);
 };
 
 process.on('exit', onExit);

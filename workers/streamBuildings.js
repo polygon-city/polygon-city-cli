@@ -161,13 +161,13 @@ var worker = function(job, done) {
       });
 
       // Add building to processing queue
-      repairBuildingQueue.add(newData);
+      repairBuildingQueue.add(newData).then(function() {
+        // Add building ID to streamed buildings set
+        redis.sadd('polygoncity:job:' + id + ':streamed_buildings', buildingId);
 
-      // Add building ID to streamed buildings set
-      redis.sadd('polygoncity:job:' + id + ':streamed_buildings', buildingId);
-
-      // Increment building count
-      redis.hincrby('polygoncity:job:' + id, 'buildings_count', 1);
+        // Increment building count
+        redis.hincrby('polygoncity:job:' + id, 'buildings_count', 1);
+      });
     });
   });
 

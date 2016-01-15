@@ -69,7 +69,6 @@ var worker = function(job, done) {
           }
         });
       });
-
     })
     .catch(function(err) {
       console.error(err);
