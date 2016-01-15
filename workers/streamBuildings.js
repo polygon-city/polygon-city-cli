@@ -12,6 +12,7 @@ var turf = require('turf');
 var path = require('path');
 var fs = Promise.promisifyAll(require('fs-extra'));
 var chalk = require('chalk');
+var Redis = require('ioredis');
 
 var citygmlPoints = require('citygml-points');
 
@@ -28,6 +29,8 @@ var strict = true;
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var repairBuildingQueue = Queue('repair_building_queue', redisPort, redisHost);
 
@@ -89,13 +92,16 @@ var worker = function(job, done) {
   var footprints = [];
 
   var data = job.data;
+  var id = data.id;
   var path = data.inputPath;
   var outputPath = data.outputPath;
 
   var proj4def = data.proj4def;
   var projection = proj4.defs('EPSG:ORIGIN', proj4def);
 
-  var saxParser = sax.createStream(strict);
+  var saxParser = sax.createStream(strict, {
+    position: true
+  });
 
   var streamErrorHandler = function (err) {
     // Sax-js requires you to throw an error here else it continues parsing
@@ -105,6 +111,19 @@ var worker = function(job, done) {
   };
 
   saxParser.on('error', streamErrorHandler);
+
+  // saxParser.on('opentag', function(node) {
+  //   if (!node.name || node.name != 'bldg:Building') {
+  //     return;
+  //   }
+  // });
+  //
+  // var lastCloseBytes;
+  // saxParser.on('closetag', function(node) {
+  //   if (node != 'bldg:Building') {
+  //     return;
+  //   }
+  // });
 
   saxParser.on('end', function() {
     console.error("Parser ended");
@@ -117,23 +136,33 @@ var worker = function(job, done) {
 
     var buildingId = xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4();
 
-    // Add GeoJSON outline of footprint (if available)
-    var footprint = getFootprint(xmlDOM, buildingId);
+    // Skip building if already in streamed set
+    redis.sismember('polygoncity:job:' + id + ':streamed_buildings', buildingId).then(function(result) {
+      if (result === 1) {
+        return;
+      }
 
-    if (footprint) {
-      footprints.push(footprint);
-    } else {
-      console.log('Unable to find footprint for building:', buildingId);
-    }
+      // Add GeoJSON outline of footprint (if available)
+      var footprint = getFootprint(xmlDOM, buildingId);
 
-    // Append data onto job payload
-    var newData = _.extend({}, data, {
-      buildingId: buildingId,
-      xml: xml
+      if (footprint) {
+        footprints.push(footprint);
+      } else {
+        console.log('Unable to find footprint for building:', buildingId);
+      }
+
+      // Append data onto job payload
+      var newData = _.extend({}, data, {
+        buildingId: buildingId,
+        xml: xml
+      });
+
+      // Add building to processing queue
+      repairBuildingQueue.add(newData);
+
+      // Add building ID to streamed buildings set
+      redis.sadd('polygoncity:job:' + id + ':streamed_buildings', buildingId);
     });
-
-    // TODO: Add building to processing queue
-    repairBuildingQueue.add(newData);
   });
 
   saxStream.on('end', function() {

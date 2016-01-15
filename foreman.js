@@ -8,6 +8,7 @@ var UUID = require('uuid');
 var chalk = require('chalk');
 var childProcess = require('child_process');
 var request = Promise.promisify(require('request'), {multiArgs: true});
+var Redis = require('ioredis');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));
@@ -26,36 +27,41 @@ var onCompleted = function(job, data) {
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-// Set stream queue up manually as otherwise the worker triggers an error
-var streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
+var redis = new Redis(redisPort, redisHost);
 
-streamBuildingsQueue.on('failed', onQueueFailed);
-streamBuildingsQueue.on('completed', onCompleted);
-// Likely a problem connecting to Redis
-streamBuildingsQueue.on('error', onQueueError);
-
-var streamBuildingsWorker = require(__dirname + '/workers/streamBuildings');
-streamBuildingsQueue.process(streamBuildingsWorker);
-
+var streamBuildingsQueue;
 var processes = [];
 
-// Wrapper for spawning queues in separate processes
-//
-// TODO: Could probably have a single module for creating a queue, seeing as
-// they are all identical aside from the queue name
-var createQueue = function(name, workerCount) {
-  var count = workerCount || 1;
+var setupQueues = function() {
+  // Set stream queue up manually as otherwise the worker triggers an error
+  streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
 
-  while (count--) {
-    processes.push(childProcess.fork(__dirname + '/queues/' + name));
-  }
+  streamBuildingsQueue.on('failed', onQueueFailed);
+  streamBuildingsQueue.on('completed', onCompleted);
+  // Likely a problem connecting to Redis
+  streamBuildingsQueue.on('error', onQueueError);
+
+  var streamBuildingsWorker = require(__dirname + '/workers/streamBuildings');
+  streamBuildingsQueue.process(streamBuildingsWorker);
+
+  // Wrapper for spawning queues in separate processes
+  //
+  // TODO: Could probably have a single module for creating a queue, seeing as
+  // they are all identical aside from the queue name
+  var createQueue = function(name, workerCount) {
+    var count = workerCount || 1;
+
+    while (count--) {
+      processes.push(childProcess.fork(__dirname + '/queues/' + name));
+    }
+  };
+
+  createQueue('repairBuilding', 3);
+  createQueue('triangulateBuilding', 3);
+  createQueue('buildingElevation', 5);
+  createQueue('buildingObj', 3);
+  createQueue('convertObj', 3);
 };
-
-createQueue('repairBuilding', 3);
-createQueue('triangulateBuilding', 3);
-createQueue('buildingElevation', 5);
-createQueue('buildingObj', 3);
-createQueue('convertObj', 3);
 
 var getProj4Def = function(epsgCode) {
   return request('http://epsg.io/?q=' + epsgCode + '&format=json').then(function(response) {
@@ -80,10 +86,19 @@ var getProj4Def = function(epsgCode) {
 };
 
 var foreman = {
+  resumeJobs: function() {
+    setupQueues();
+  },
+
   startJob: function(inputPath, outputPath, epsgCode, mapzenKey) {
+    setupQueues();
+
     // Generate unique ID for the file
     var id = UUID.v4();
     console.log('Start job:', id);
+
+    // Add job to jobs list
+    redis.rpush('polygoncity:jobs', id);
 
     getProj4Def(epsgCode).then(function(proj4def) {
       if (!proj4def) {
