@@ -2,6 +2,12 @@ var Promise = require('bluebird');
 var chalk = require('chalk');
 var path = require('path');
 var modelConverter = require('model-converter');
+var Redis = require('ioredis');
+
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var convertQueue = function(input, outputs) {
   var promises = [];
@@ -16,6 +22,7 @@ var convertQueue = function(input, outputs) {
 var worker = function(job, done) {
   var data = job.data;
 
+  var id = data.id;
   var objPath = data.objPath;
 
   // Break path into components
@@ -41,10 +48,28 @@ var worker = function(job, done) {
       return convertQueue(input, outputs);
     })
     .then(function(outputPaths) {
-      console.log('Conversion input:', input);
-      console.log('Conversion outputs:', outputPaths);
+      // Increment final job count
+      redis.hincrby('polygoncity:job:' + id, 'final_job_count', 1).then(function(finalJobCount) {
+        // Mark job as complete if final job count matches final building count
+        redis.hget('polygoncity:job:' + id, 'buildings_count_final').then(function(result) {
+          // All jobs completed
+          if (result == finalJobCount) {
+            redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
+              console.log('Conversion input:', input);
+              console.log('Conversion outputs:', outputPaths);
 
-      done();
+              done();
+            });
+          // Still jobs left to go
+          } else {
+            console.log('Conversion input:', input);
+            console.log('Conversion outputs:', outputPaths);
+
+            done();
+          }
+        });
+      });
+
     })
     .catch(function(err) {
       console.error(err);

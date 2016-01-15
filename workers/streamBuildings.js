@@ -96,6 +96,9 @@ var worker = function(job, done) {
   var path = data.inputPath;
   var outputPath = data.outputPath;
 
+  // Create job state hash
+  redis.hset('polygoncity:job:' + id, 'id', id);
+
   var proj4def = data.proj4def;
   var projection = proj4.defs('EPSG:ORIGIN', proj4def);
 
@@ -162,6 +165,9 @@ var worker = function(job, done) {
 
       // Add building ID to streamed buildings set
       redis.sadd('polygoncity:job:' + id + ':streamed_buildings', buildingId);
+
+      // Increment building count
+      redis.hincrby('polygoncity:job:' + id, 'buildings_count', 1);
     });
   });
 
@@ -172,10 +178,15 @@ var worker = function(job, done) {
     createFootprintIndex(footprints, outputPath).then(function() {
       console.log(chalk.green('Saved GeoJSON index'));
 
-      // Remove streamed buildings set
-      redis.del('polygoncity:job:' + id + ':streamed_buildings');
+      // Update final building count
+      redis.hget('polygoncity:job:' + id, 'buildings_count').then(function(result) {
+        redis.hset('polygoncity:job:' + id, 'buildings_count_final', result);
 
-      done();
+        // Remove streamed buildings set
+        redis.del('polygoncity:job:' + id + ':streamed_buildings');
+
+        done();
+      });
     }).catch(function(err) {
       console.error(err);
       done(err);
