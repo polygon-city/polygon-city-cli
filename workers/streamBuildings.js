@@ -180,6 +180,8 @@ var worker = function(job, done) {
 
       // Update final building count
       redis.hget('polygoncity:job:' + id, 'buildings_count').then(function(result) {
+        console.log("Building count:", result);
+
         redis.hset('polygoncity:job:' + id, 'buildings_count_final', result);
 
         // Remove streamed buildings set
