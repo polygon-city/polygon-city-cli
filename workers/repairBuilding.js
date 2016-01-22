@@ -85,9 +85,9 @@ var worker = function(job, done) {
       flipFaces: results.flipFaces
     });
 
-    triangulateBuildingQueue.add(data);
-
-    done();
+    triangulateBuildingQueue.add(data).then(function() {
+      done();
+    });
   }).catch(function(err) {
     console.error(err);
     done(err);

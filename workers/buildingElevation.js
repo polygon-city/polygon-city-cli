@@ -110,67 +110,65 @@ var worker = function(job, done) {
       elevation: maxGroundElevation
     });
 
-    buildingObjQueue.add(data);
+    buildingObjQueue.add(data).then(function() {
+      done();
+    });
+  } else {
+    var projection = proj4.defs('EPSG:ORIGIN', proj4def);
 
-    done();
-    return;
-  }
+    // Convert coordinates from SRS to WGS84 [lon, lat]
+    var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
 
-  var projection = proj4.defs('EPSG:ORIGIN', proj4def);
+    var url = 'https://elevation.mapzen.com/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
 
-  // Convert coordinates from SRS to WGS84 [lon, lat]
-  var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
+    // Retreive elevation via API
+    request(url).then(function(response) {
+      var res = response[0];
+      var body = response[1];
 
-  var url = 'https://elevation.mapzen.com/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
-
-  // Retreive elevation via API
-  request(url).then(function(response) {
-    var res = response[0];
-    var body = response[1];
-
-    if (res.statusCode != 200) {
-      var err = new Error('Unexpected elevation data response, HTTP: ' + res.statusCode);
-      console.error(err);
-      done(err);
-      return;
-    }
-
-    try {
-      var bodyJSON = JSON.parse(body);
-
-      if (!bodyJSON.height || bodyJSON.height.length === 0) {
-        var err = new Error('Elevation values not present in API response');
+      if (res.statusCode != 200) {
+        var err = new Error('Unexpected elevation data response, HTTP: ' + res.statusCode);
         console.error(err);
         done(err);
         return;
       }
 
-      var elevation = bodyJSON.height[0];
+      try {
+        var bodyJSON = JSON.parse(body);
 
-      // Append data onto job payload
-      _.extend(data, {
-        origin: origin,
-        elevation: elevation
-      });
+        if (!bodyJSON.height || bodyJSON.height.length === 0) {
+          var err = new Error('Elevation values not present in API response');
+          console.error(err);
+          done(err);
+          return;
+        }
 
-      buildingObjQueue.add(data);
+        var elevation = bodyJSON.height[0];
 
-      done();
-      return;
-    } catch(err) {
-      var err = new Error('Unexpected elevation data response' + ((err.message) ? ': ' + err.message : ''));
-      console.error(err);
-      done(err);
-      return;
-    }
-  }).catch(function(err) {
-    if (err) {
-      var err = new Error('Unable to retrieve elevation data' + ((err.message) ? ': ' + err.message : ''));
-      console.error(err);
-      done(err);
-      return;
-    }
-  });
+        // Append data onto job payload
+        _.extend(data, {
+          origin: origin,
+          elevation: elevation
+        });
+
+        buildingObjQueue.add(data).then(function() {
+          done();
+        });
+      } catch(err) {
+        var err = new Error('Unexpected elevation data response' + ((err.message) ? ': ' + err.message : ''));
+        console.error(err);
+        done(err);
+        return;
+      }
+    }).catch(function(err) {
+      if (err) {
+        var err = new Error('Unable to retrieve elevation data' + ((err.message) ? ': ' + err.message : ''));
+        console.error(err);
+        done(err);
+        return;
+      }
+    });
+  }
 };
 
 module.exports = worker;
