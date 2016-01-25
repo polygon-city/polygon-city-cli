@@ -107,6 +107,9 @@ var worker = function(job, done) {
             createFootprintIndex(id, outputPath).then(function() {
               console.log(chalk.green('Saved GeoJSON index:', outputPath));
 
+              // Remove footprints list
+              redis.del('polygoncity:job:' + id + ':footprints');
+
               // Mark job as complete
               redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
                 done();
