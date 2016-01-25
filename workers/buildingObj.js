@@ -34,9 +34,9 @@ var worker = function(job, done) {
       objPath: outputPath
     });
 
-    convertObjQueue.add(data);
-
-    done();
+    convertObjQueue.add(data).then(function() {
+      done();
+    });
   }).catch(function(err) {
     console.error(err);
     done(err);

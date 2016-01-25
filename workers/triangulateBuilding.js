@@ -40,9 +40,9 @@ var worker = function(job, done) {
     faces: allFaces
   });
 
-  buildingElevationQueue.add(data);
-
-  done();
+  buildingElevationQueue.add(data).then(function() {
+    done();
+  });
 };
 
 module.exports = worker;

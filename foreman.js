@@ -12,12 +12,12 @@ var Redis = require('ioredis');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));
-  process.exit(1);
+  onExit();
 };
 
 var onQueueError = function(err) {
   console.error(chalk.red(err));
-  process.exit(1);
+  onExit();
 };
 
 var onCompleted = function(job, data) {
@@ -61,6 +61,7 @@ var setupQueues = function() {
   createQueue('buildingElevation', 5);
   createQueue('buildingObj', 3);
   createQueue('convertObj', 3);
+  createQueue('geojsonIndex', 1);
 };
 
 var getProj4Def = function(epsgCode) {
@@ -106,7 +107,7 @@ var foreman = {
       if (!proj4def) {
         var err = new Error('Unable to find Proj4 definition for EPSG code ' + epsgCode);
         console.error(chalk.red(err));
-        process.exit(1);
+        onExit();
       }
 
       console.log('Proj4 definition:', proj4def);
@@ -122,7 +123,7 @@ var foreman = {
       });
     }).catch(function(err) {
       console.error(chalk.red(err));
-      process.exit(1);
+      onExit();
     });
   },
 };
@@ -141,7 +142,7 @@ var checkJobCompletion = function() {
     redis.llen('polygoncity:jobs').then(function(count) {
       if (count == 0) {
         console.error(chalk.blue('Finished all jobs'));
-        process.exit(1);
+        onExit();
       } else {
         setTimeout(checkJobCompletion, 1000);
       }
@@ -155,14 +156,14 @@ var onExit = function() {
   // Delay exit to let any async / Redis commands catch up
   setTimeout(function() {
     processes.forEach(function(child) {
-      child.kill();
+      child.kill('SIGINT');
     });
 
     process.exit(1);
   }, 2000);
 };
 
-process.on('exit', onExit);
+// process.on('exit', onExit);
 process.on('SIGINT', onExit);
 
 module.exports = foreman;
