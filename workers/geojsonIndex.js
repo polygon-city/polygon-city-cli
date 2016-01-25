@@ -48,21 +48,31 @@ var getFootprint = function(xmlDOM, id) {
   return polygon;
 };
 
-var createFootprintIndex = function(footprints, outputPath) {
+var createFootprintIndex = function(id, outputPath) {
+  var footprints = [];
   var features = [];
 
-  for (var i = 0; i < footprints.length; i++) {
-    features.push(footprints[i]);
-  }
+  // Get footprints from Redis
+  return redis.lrange('polygoncity:job:' + id + ':footprints', 0, -1).then(function(results) {
+    results.forEach(function(footprint) {
+      footprints.push(JSON.parse(footprint));
+    });
 
-  var featureCollection = turf.featurecollection(features);
+    for (var i = 0; i < footprints.length; i++) {
+      features.push(footprints[i]);
+    }
 
-  var _outputPath = path.join(outputPath, 'index.geojson');
+    var featureCollection = turf.featurecollection(features);
 
-  return fs.outputFileAsync(_outputPath, JSON.stringify(featureCollection));
+    var _outputPath = path.join(outputPath, 'index.geojson');
+
+    console.log('Number of GeoJSON footprints:', footprints.length);
+
+    return fs.outputFileAsync(_outputPath, JSON.stringify(featureCollection));
+  });
 };
 
-var footprints = [];
+var existingIndex;
 var proj4def;
 var projection;
 
@@ -85,35 +95,36 @@ var worker = function(job, done) {
   var footprint = getFootprint(xmlDOM, buildingId);
 
   if (footprint) {
-    footprints.push(footprint);
+    // Add to Redis list
+    redis.rpush('polygoncity:job:' + id + ':footprints', JSON.stringify(footprint)).then(function() {
+      // Increment final job count
+      redis.hincrby('polygoncity:job:' + id, 'final_job_count', 1).then(function(finalJobCount) {
+        // Get final building count, if it exists
+        redis.hget('polygoncity:job:' + id, 'buildings_count_final').then(function(result) {
+          // All jobs completed
+          if (result == finalJobCount) {
+            // Compile GeoJSON index of footprints
+            createFootprintIndex(id, outputPath).then(function() {
+              console.log(chalk.green('Saved GeoJSON index:', outputPath));
+
+              // Mark job as complete
+              redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
+                done();
+              });
+            }).catch(function(err) {
+              console.error(err);
+              done(err);
+            });
+          // Still jobs left to go
+          } else {
+            done();
+          }
+        });
+      });
+    });
   } else {
     console.log(chalk.red('Unable to find footprint for building:', buildingId));
   }
-
-  // Increment final job count
-  redis.hincrby('polygoncity:job:' + id, 'final_job_count', 1).then(function(finalJobCount) {
-    // Get final building count, if it exists
-    redis.hget('polygoncity:job:' + id, 'buildings_count_final').then(function(result) {
-      // All jobs completed
-      if (result == finalJobCount) {
-        // Compile GeoJSON index of footprints
-        createFootprintIndex(footprints, outputPath).then(function() {
-          // Mark job as complete
-          redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
-            console.log('Number of GeoJSON footprints:', footprints.length);
-            console.log(chalk.green('Saved GeoJSON index:', outputPath));
-            done();
-          });
-        }).catch(function(err) {
-          console.error(err);
-          done(err);
-        });
-      // Still jobs left to go
-      } else {
-        done();
-      }
-    });
-  });
 };
 
 module.exports = worker;
