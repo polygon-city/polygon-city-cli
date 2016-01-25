@@ -32,6 +32,8 @@ var redis = new Redis(redisPort, redisHost);
 var streamBuildingsQueue;
 var processes = [];
 
+var exiting = false;
+
 var setupQueues = function() {
   // Set stream queue up manually as otherwise the worker triggers an error
   streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
@@ -129,6 +131,10 @@ var foreman = {
 };
 
 var checkJobCompletion = function() {
+  if (exiting) {
+    return;
+  }
+
   redis.lrange('polygoncity:jobs', 0, -1).then(function(result) {
     result.forEach(function(id) {
       redis.hget('polygoncity:job:' + id, 'completed').then(function(completed) {
@@ -142,7 +148,7 @@ var checkJobCompletion = function() {
     redis.llen('polygoncity:jobs').then(function(count) {
       if (count == 0) {
         console.error(chalk.blue('Finished all jobs'));
-        onExit();
+        onExit(true);
       } else {
         setTimeout(checkJobCompletion, 1000);
       }
@@ -150,20 +156,19 @@ var checkJobCompletion = function() {
   });
 };
 
-var onExit = function() {
+var onExit = function(quitChildren) {
   console.log(chalk.red('Exiting...'));
+  exiting = true;
 
-  // Delay exit to let any async / Redis commands catch up
-  setTimeout(function() {
+  if (quitChildren) {
     processes.forEach(function(child) {
       child.kill('SIGINT');
     });
 
     process.exit(1);
-  }, 2000);
+  }
 };
 
-// process.on('exit', onExit);
 process.on('SIGINT', onExit);
 
 module.exports = foreman;

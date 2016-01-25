@@ -23,6 +23,9 @@ var redis = new Redis(redisPort, redisHost);
 
 var repairBuildingQueue = Queue('repair_building_queue', redisPort, redisHost);
 
+var exiting = false;
+var readStream;
+
 var worker = function(job, done) {
   var dom = require('domain').create();
 
@@ -35,8 +38,6 @@ var worker = function(job, done) {
 
     done(err);
   });
-
-  var readStream;
 
   var data = job.data;
   var id = data.id;
@@ -65,6 +66,10 @@ var worker = function(job, done) {
   var saxStream = new saxpath.SaXPath(saxParser, '//bldg:Building');
 
   saxStream.on('match', function(xml) {
+    if (exiting) {
+      return;
+    }
+
     var xmlDOM = domParser.parseFromString(xml);
 
     var buildingId = xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4();
@@ -93,6 +98,10 @@ var worker = function(job, done) {
   });
 
   saxStream.on('end', function() {
+    if (exiting) {
+      return;
+    }
+
     console.log('Stream ended');
 
     // Wait a moment for left-overs
@@ -122,5 +131,18 @@ var worker = function(job, done) {
     readStream.pipe(saxParser);
   });
 };
+
+var onExit = function() {
+  console.log(chalk.red('Exiting streamBuildings worker...'));
+  exiting = true;
+
+  readStream.pause();
+
+  setTimeout(function() {
+    process.exit(1);
+  }, 1000);
+};
+
+process.on('SIGINT', onExit);
 
 module.exports = worker;

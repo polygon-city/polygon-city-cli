@@ -22,6 +22,8 @@ var redis = new Redis(redisPort, redisHost);
 
 var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
+var exiting = false;
+
 var getFootprint = function(xmlDOM, id) {
   // Find ground surfaces
   var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
@@ -129,5 +131,13 @@ var worker = function(job, done) {
     console.log(chalk.red('Unable to find footprint for building:', buildingId));
   }
 };
+
+var onExit = function() {
+  console.log(chalk.red('Exiting geojsonIndex worker...'));
+  exiting = true;
+  // process.exit(1);
+};
+
+process.on('SIGINT', onExit);
 
 module.exports = worker;

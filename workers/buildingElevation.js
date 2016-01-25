@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
 var Queue = require('bull');
+var chalk = require('chalk');
 var DOMParser = require('xmldom').DOMParser;
 var domParser = new DOMParser();
 var xmldom2xml = require('xmldom-to-xml');
@@ -12,6 +13,8 @@ var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var buildingObjQueue = Queue('building_obj_queue', redisPort, redisHost);
+
+var exiting = false;
 
 var worker = function(job, done) {
   var data = job.data;
@@ -170,5 +173,13 @@ var worker = function(job, done) {
     });
   }
 };
+
+var onExit = function() {
+  console.log(chalk.red('Exiting buildingElevation worker...'));
+  exiting = true;
+  // process.exit(1);
+};
+
+process.on('SIGINT', onExit);
 
 module.exports = worker;

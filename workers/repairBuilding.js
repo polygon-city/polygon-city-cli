@@ -1,6 +1,7 @@
 var Promise = require('bluebird');
 var Queue = require('bull');
 var _ = require('lodash');
+var chalk = require('chalk');
 
 var citygmlPolygons = require('citygml-polygons');
 var citygmlBoundaries = require('citygml-boundaries');
@@ -11,6 +12,8 @@ var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var triangulateBuildingQueue = Queue('triangulate_building_queue', redisPort, redisHost);
+
+var exiting = false;
 
 var repair = function(polygons, validationResults) {
   // Repair CityGML
@@ -93,5 +96,13 @@ var worker = function(job, done) {
     done(err);
   });
 };
+
+var onExit = function() {
+  console.log(chalk.red('Exiting repairBuilding worker...'));
+  exiting = true;
+  // process.exit(1);
+};
+
+process.on('SIGINT', onExit);
 
 module.exports = worker;

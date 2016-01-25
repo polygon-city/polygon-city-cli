@@ -24,3 +24,12 @@ queue.on('failed', onQueueFailed);
 queue.on('error', onQueueError);
 queue.on('completed', onCompleted);
 queue.process(worker);
+
+var onExit = function() {
+  console.log(chalk.red('Exiting convertObj queue...'));
+  queue.close().then(function() {
+    process.exit(1);
+  });
+};
+
+process.on('SIGINT', onExit);

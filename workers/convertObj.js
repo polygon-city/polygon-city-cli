@@ -10,6 +10,8 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
+var exiting = false;
+
 var convertQueue = function(input, outputs) {
   var promises = [];
 
@@ -66,5 +68,13 @@ var worker = function(job, done) {
       done(err);
     });
 };
+
+var onExit = function() {
+  console.log(chalk.red('Exiting convertObj worker...'));
+  exiting = true;
+  // process.exit(1);
+};
+
+process.on('SIGINT', onExit);
 
 module.exports = worker;
