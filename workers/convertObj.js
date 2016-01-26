@@ -11,6 +11,7 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
 var exiting = false;
+var activeJob = false;
 
 var convertQueue = function(input, outputs) {
   var promises = [];
@@ -23,6 +24,12 @@ var convertQueue = function(input, outputs) {
 };
 
 var worker = function(job, done) {
+  if (exiting) {
+    return;
+  }
+
+  activeJob = true;
+
   var data = job.data;
 
   var id = data.id;
@@ -60,11 +67,13 @@ var worker = function(job, done) {
       });
 
       geojsonIndexQueue.add(data).then(function() {
+        activeJob = false;
         done();
       });
     })
     .catch(function(err) {
       console.error(err);
+      activeJob = false;
       done(err);
     });
 };
@@ -72,7 +81,19 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting convertObj worker...'));
   exiting = true;
+
+  // Keep process active until job is complete
+  exitAfterJob();
+
   // process.exit(1);
+};
+
+var exitAfterJob = function() {
+  if (!activeJob) {
+    return;
+  } else {
+    setTimeout(exitAfterJob, 500);
+  }
 };
 
 process.on('SIGINT', onExit);
