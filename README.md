@@ -9,7 +9,7 @@
 ## Installation
 
 ```bash
-$ npm install polygon-city-cli -g
+$ npm install polygon-city-cli@latest -g
 ```
 
 ## Usage
