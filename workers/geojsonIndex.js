@@ -24,7 +24,9 @@ var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
 var exiting = false;
 
-var getFootprint = function(xmlDOM, id) {
+var getFootprint = function(xmlDOM, properties) {
+  properties = properties || {};
+
   // Find ground surfaces
   var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
 
@@ -39,9 +41,7 @@ var getFootprint = function(xmlDOM, id) {
       return proj4('EPSG:ORIGIN').inverse([point[0], point[1]]);
     });
 
-    polygons.push(turf.polygon([points], {
-      id: id
-    }));
+    polygons.push(turf.polygon([points], properties));
   }
 
   var featureCollection = turf.featurecollection(polygons);
@@ -90,11 +90,21 @@ var worker = function(job, done) {
   var outputPath = data.outputPath;
   var buildingId = data.buildingId;
   var xml = data.xml;
+  var elevation = data.elevation;
+  var modelPaths = [data.objPath].concat(data.convertedPaths);
 
   var xmlDOM = domParser.parseFromString(xml);
 
+  var relPaths = modelPaths.map(function(absPath) {
+    return path.relative(outputPath, absPath);
+  });
+
   // Add GeoJSON outline of footprint (if available)
-  var footprint = getFootprint(xmlDOM, buildingId);
+  var footprint = getFootprint(xmlDOM, {
+    id: buildingId,
+    elevation: elevation,
+    models: relPaths
+  });
 
   if (footprint) {
     // Add to Redis list
