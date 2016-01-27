@@ -24,14 +24,16 @@ var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
 var exiting = false;
 
-var getFootprint = function(xmlDOM, properties) {
+var getFootprint = function(xmlDOM, origin, properties) {
   properties = properties || {};
 
   // Find ground surfaces
   var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
 
+  var originCoords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
+
   if (!groundSurfaces && groundSurfaces.length === 0) {
-    return false;
+    return turf.point(originCoords, properties);
   }
 
   var points;
@@ -90,6 +92,7 @@ var worker = function(job, done) {
   var outputPath = data.outputPath;
   var buildingId = data.buildingId;
   var xml = data.xml;
+  var origin = data.origin;
   var elevation = data.elevation;
   var modelPaths = [data.objPath].concat(data.convertedPaths);
 
@@ -100,7 +103,7 @@ var worker = function(job, done) {
   });
 
   // Add GeoJSON outline of footprint (if available)
-  var footprint = getFootprint(xmlDOM, {
+  var footprint = getFootprint(xmlDOM, origin, {
     id: buildingId,
     elevation: elevation,
     models: relPaths
