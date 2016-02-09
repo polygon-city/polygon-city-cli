@@ -68,6 +68,11 @@ var createFootprintIndex = function(id, outputPath) {
 
     var featureCollection = turf.featurecollection(features);
 
+    // Add bounding box according to GeoJSON spec
+    // http://geojson.org/geojson-spec.html#bounding-boxes
+    var bbox = turf.extent(featureCollection);
+    featureCollection.bbox = bbox;
+
     var _outputPath = path.join(outputPath, 'index.geojson');
 
     console.log('Number of GeoJSON footprints:', footprints.length);
