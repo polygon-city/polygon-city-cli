@@ -96,6 +96,7 @@ var worker = function(job, done) {
   var id = data.id;
   var outputPath = data.outputPath;
   var buildingId = data.buildingId;
+  var buildingIdOriginal = data.buildingIdOriginal;
   var xml = data.xml;
   var origin = data.origin;
   var elevation = data.elevation;
@@ -110,6 +111,7 @@ var worker = function(job, done) {
   // Add GeoJSON outline of footprint (if available)
   var footprint = getFootprint(xmlDOM, origin, {
     id: buildingId,
+    idOriginal: buildingIdOriginal,
     elevation: elevation,
     models: relPaths
   });

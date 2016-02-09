@@ -73,7 +73,13 @@ var worker = function(job, done) {
 
     var xmlDOM = domParser.parseFromString(xml);
 
-    var buildingId = prefix + (xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4());
+    var buildingId = xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4();
+
+    var prefixedId;
+
+    if (prefix) {
+      prefixedId = prefix + buildingId;
+    }
 
     // Skip building if already in streamed set
     redis.sismember('polygoncity:job:' + id + ':streamed_buildings', buildingId).then(function(result) {
@@ -83,7 +89,8 @@ var worker = function(job, done) {
 
       // Append data onto job payload
       var newData = _.extend({}, data, {
-        buildingId: buildingId,
+        buildingId: (prefixedId) ? prefixedId : buildingId,
+        buildingIdOriginal: buildingId,
         xml: xml
       });
 
