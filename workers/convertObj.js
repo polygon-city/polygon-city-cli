@@ -4,9 +4,12 @@ var Queue = require('bull');
 var chalk = require('chalk');
 var path = require('path');
 var modelConverter = require('model-converter');
+var Redis = require('ioredis');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
 
@@ -33,6 +36,7 @@ var worker = function(job, done) {
   var data = job.data;
 
   var id = data.id;
+  var buildingId = data.buildingId;
   var objPath = data.objPath;
 
   // Break path into components
@@ -74,7 +78,14 @@ var worker = function(job, done) {
     .catch(function(err) {
       console.error(err);
       activeJob = false;
-      done(err);
+
+      // Add building ID to failed buildings set
+      redis.sadd('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+        // Increment failed building count
+        return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+          done(err);
+        });
+      });
     });
 };
 

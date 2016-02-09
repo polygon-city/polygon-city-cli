@@ -53,8 +53,12 @@ var setupQueues = function() {
   var createQueue = function(name, workerCount) {
     var count = workerCount || 1;
 
+    var child;
     while (count--) {
-      processes.push(childProcess.fork(__dirname + '/queues/' + name));
+      child = childProcess.fork(__dirname + '/queues/' + name);
+      processes.push(child);
+
+      console.log(chalk.green('Spawned process ' + child.pid + ' for ' + name + ' from ' + process.pid));
     }
   };
 
