@@ -41,6 +41,7 @@ var worker = function(job, done) {
 
   var data = job.data;
   var id = data.id;
+  var prefix = data.prefix || '';
   var path = data.inputPath;
 
   // Create job state hash
@@ -72,7 +73,7 @@ var worker = function(job, done) {
 
     var xmlDOM = domParser.parseFromString(xml);
 
-    var buildingId = xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4();
+    var buildingId = prefix + (xmlDOM.firstChild.getAttribute('gml:id') || UUID.v4());
 
     // Skip building if already in streamed set
     redis.sismember('polygoncity:job:' + id + ':streamed_buildings', buildingId).then(function(result) {

@@ -24,6 +24,11 @@ var checkFile = function(file) {
 var processFile = function(inputFile, options) {
   console.log('EPSG: %j', options.epsg);
   console.log('Mapzen key: %j', options.mapzen);
+
+  if (options.prefix) {
+    console.log('Prefix: %j', options.prefix);
+  }
+
   console.log('Output directory: %j', program.output);
   console.log('Input: %j', inputFile);
 
@@ -57,7 +62,7 @@ var processFile = function(inputFile, options) {
     console.log(chalk.green(util.inspect(inputPath)));
 
     // Kick off processing job
-    foreman.startJob(path.join(inputPath.dir, inputPath.base), path.normalize(options.output), options.epsg, options.mapzen);
+    foreman.startJob(path.join(inputPath.dir, inputPath.base), path.normalize(options.output), options.epsg, options.mapzen, options.prefix);
   }).catch(function(err) {
     console.error(chalk.red('Exiting:', err.message));
     process.exit(1);
@@ -73,6 +78,7 @@ program
   .usage('[options] <input file>')
   .option('-e, --epsg [code]', 'EPSG code for input data')
   .option('-m, --mapzen [key]', 'Mapzen Elevation API key')
+  .option('-p, --prefix [prefix]', 'Prefix for building IDs')
   .option('-o, --output [directory]', 'Output directory')
   .action(processFile);
 

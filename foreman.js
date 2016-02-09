@@ -98,7 +98,7 @@ var foreman = {
     checkJobCompletion();
   },
 
-  startJob: function(inputPath, outputPath, epsgCode, mapzenKey) {
+  startJob: function(inputPath, outputPath, epsgCode, mapzenKey, prefix) {
     setupQueues();
     checkJobCompletion();
 
@@ -121,6 +121,7 @@ var foreman = {
       // Start everything going...
       streamBuildingsQueue.add({
         id: id,
+        prefix: prefix,
         inputPath: inputPath,
         outputPath: outputPath,
         epsgCode: epsgCode,
