@@ -115,35 +115,40 @@ var worker = function(job, done) {
   });
 
   if (footprint) {
-    // Add to Redis list
-    redis.rpush('polygoncity:job:' + id + ':footprints', JSON.stringify(footprint)).then(function() {
-      // Increment final job count
-      redis.hincrby('polygoncity:job:' + id, 'final_job_count', 1).then(function(finalJobCount) {
-        // Get final building count, if it exists
-        redis.hget('polygoncity:job:' + id, 'buildings_count_final').then(function(finalCount) {
-          // Get failed buildings count
-          redis.hget('polygoncity:job:' + id, 'buildings_count_failed').then(function(failedCount) {
-            // All jobs completed
-            if ((finalCount - failedCount) == finalJobCount) {
-              // Compile GeoJSON index of footprints
-              createFootprintIndex(id, outputPath).then(function() {
-                console.log(chalk.green('Saved GeoJSON index:', outputPath));
+    var _outputPath = path.join(outputPath, buildingId + '.geojson');
 
-                // Remove footprints list
-                redis.del('polygoncity:job:' + id + ':footprints');
+    // Save footprint as a single GeoJSON
+    fs.outputFileAsync(_outputPath, JSON.stringify(footprint)).then(function() {
+      // Add to Redis list
+      redis.rpush('polygoncity:job:' + id + ':footprints', JSON.stringify(footprint)).then(function() {
+        // Increment final job count
+        redis.hincrby('polygoncity:job:' + id, 'final_job_count', 1).then(function(finalJobCount) {
+          // Get final building count, if it exists
+          redis.hget('polygoncity:job:' + id, 'buildings_count_final').then(function(finalCount) {
+            // Get failed buildings count
+            redis.hget('polygoncity:job:' + id, 'buildings_count_failed').then(function(failedCount) {
+              // All jobs completed
+              if ((finalCount - failedCount) == finalJobCount) {
+                // Compile GeoJSON index of footprints
+                createFootprintIndex(id, outputPath).then(function() {
+                  console.log(chalk.green('Saved GeoJSON index:', outputPath));
 
-                // Mark job as complete
-                redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
-                  done();
+                  // Remove footprints list
+                  redis.del('polygoncity:job:' + id + ':footprints');
+
+                  // Mark job as complete
+                  redis.hset('polygoncity:job:' + id, 'completed', 1).then(function() {
+                    done();
+                  });
+                }).catch(function(err) {
+                  console.error(err);
+                  done(err);
                 });
-              }).catch(function(err) {
-                console.error(err);
-                done(err);
-              });
-            // Still jobs left to go
-            } else {
-              done();
-            }
+              // Still jobs left to go
+              } else {
+                done();
+              }
+            });
           });
         });
       });
