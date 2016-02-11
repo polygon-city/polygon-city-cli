@@ -32,6 +32,9 @@ var getFootprint = function(xmlDOM, origin, properties) {
 
   var originCoords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
 
+  // Add origin to properties
+  properties.origin = originCoords;
+
   if (!groundSurfaces && groundSurfaces.length === 0) {
     return turf.point(originCoords, properties);
   }
