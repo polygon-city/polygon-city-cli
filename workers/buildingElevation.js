@@ -104,12 +104,18 @@ var worker = function(job, done) {
       return;
     }
   });
+  
+  var projection = proj4.defs('EPSG:ORIGIN', proj4def);
+
+  // Convert coordinates from SRS to WGS84 [lon, lat]
+  var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
 
   // Skip external elevation API if ground elevation is provided
   if (maxGroundElevation) {
     // Append data onto job payload
     _.extend(data, {
       origin: origin,
+      originWGS84: coords,
       elevation: maxGroundElevation
     });
 
@@ -117,11 +123,6 @@ var worker = function(job, done) {
       done();
     });
   } else {
-    var projection = proj4.defs('EPSG:ORIGIN', proj4def);
-
-    // Convert coordinates from SRS to WGS84 [lon, lat]
-    var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
-
     var url = 'https://elevation.mapzen.com/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
 
     // Retreive elevation via API
@@ -151,6 +152,7 @@ var worker = function(job, done) {
         // Append data onto job payload
         _.extend(data, {
           origin: origin,
+          originWGS84: coords,
           elevation: elevation
         });
 

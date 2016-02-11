@@ -3,7 +3,9 @@ var Promise = require('bluebird');
 var Queue = require('bull');
 var chalk = require('chalk');
 var path = require('path');
+var fs = require('fs');
 var modelConverter = require('model-converter');
+var JXON = require('jxon');
 var Redis = require('ioredis');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
@@ -64,6 +66,42 @@ var worker = function(job, done) {
     .then(function(outputPaths) {
       console.log('Conversion input:', input);
       console.log('Conversion outputs:', outputPaths);
+
+      var allPaths = [].concat(input, outputPaths);
+
+      // Add metadata to building model files (origin, etc)
+
+      var originObjStr = '# Longitude: ' + data.originWGS84[0] + '\n# Latitude: ' + data.originWGS84[1] + '\n';
+      var elevationObjStr = '# Elevation: ' + data.elevation + '\n\n';
+
+      var modelData, newModelData, jxonObj;
+      allPaths.forEach(function(outputPath) {
+        // Open each model file
+        modelData = fs.readFileSync(outputPath);
+
+        newModelData = undefined;
+
+        if (outputPath.endsWith('.obj')) {
+          // If obj, inject origin as comment at top
+          newModelData = originObjStr + elevationObjStr + modelData.toString();
+        } else if (outputPath.endsWith('.dae')) {
+          // If collada, convert to XML and inject origin somewhere sane
+          jxonObj = JXON.stringToJs(modelData.toString());
+
+          jxonObj.collada.asset.longitude = data.originWGS84[0];
+          jxonObj.collada.asset.latitude = data.originWGS84[1];
+          jxonObj.collada.asset.elevation = data.elevation;
+
+          newModelData = JXON.jsToString(jxonObj);
+        }
+
+        if (!newModelData) {
+          return;
+        }
+
+        // Save model file
+        fs.writeFileSync(outputPath, newModelData);
+      });
 
       // Append data onto job payload
       _.extend(data, {

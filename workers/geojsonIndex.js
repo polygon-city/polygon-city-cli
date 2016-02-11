@@ -30,13 +30,11 @@ var getFootprint = function(xmlDOM, origin, properties) {
   // Find ground surfaces
   var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
 
-  var originCoords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
-
   // Add origin to properties
-  properties.origin = originCoords;
+  properties.origin = origin;
 
   if (!groundSurfaces && groundSurfaces.length === 0) {
-    return turf.point(originCoords, properties);
+    return turf.point(origin, properties);
   }
 
   var points;
@@ -101,7 +99,7 @@ var worker = function(job, done) {
   var buildingId = data.buildingId;
   var buildingIdOriginal = data.buildingIdOriginal;
   var xml = data.xml;
-  var origin = data.origin;
+  var origin = data.originWGS84;
   var elevation = data.elevation;
   var modelPaths = [data.objPath].concat(data.convertedPaths);
 
