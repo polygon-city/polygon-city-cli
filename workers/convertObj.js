@@ -71,6 +71,18 @@ var worker = function(job, done) {
 
       // Add metadata to building model files (origin, etc)
 
+      var metadata = {
+        id: data.buildingId,
+        idOriginal: data.buildingIdOriginal,
+        origin: data.originWGS84,
+        elevation: data.elevation,
+      };
+
+      if (data.wof) {
+        metadata.wof = data.wof;
+      }
+
+      var jsonStr = '# ' + JSON.stringify(metadata) + '\n';
       var originObjStr = '# Longitude: ' + data.originWGS84[0] + '\n# Latitude: ' + data.originWGS84[1] + '\n';
       var elevationObjStr = '# Elevation: ' + data.elevation + '\n\n';
 
@@ -83,7 +95,7 @@ var worker = function(job, done) {
 
         if (outputPath.endsWith('.obj')) {
           // If obj, inject origin as comment at top
-          newModelData = originObjStr + elevationObjStr + modelData.toString();
+          newModelData = jsonStr + originObjStr + elevationObjStr + modelData.toString();
         } else if (outputPath.endsWith('.dae')) {
           // If collada, convert to XML and inject origin somewhere sane
           jxonObj = JXON.stringToJs(modelData.toString());
@@ -91,6 +103,7 @@ var worker = function(job, done) {
           jxonObj.collada.asset.longitude = data.originWGS84[0];
           jxonObj.collada.asset.latitude = data.originWGS84[1];
           jxonObj.collada.asset.elevation = data.elevation;
+          jxonObj.collada.asset.metadata = JSON.stringify(metadata);
 
           newModelData = JXON.jsToString(jxonObj);
         }
