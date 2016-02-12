@@ -101,6 +101,7 @@ var worker = function(job, done) {
   var xml = data.xml;
   var origin = data.originWGS84;
   var elevation = data.elevation;
+  var wof = data.wof;
   var modelPaths = [data.objPath].concat(data.convertedPaths);
 
   var xmlDOM = domParser.parseFromString(xml);
@@ -109,13 +110,19 @@ var worker = function(job, done) {
     return path.relative(outputPath, absPath);
   });
 
-  // Add GeoJSON outline of footprint (if available)
-  var footprint = getFootprint(xmlDOM, origin, {
+  var footprintProperties = {
     id: buildingId,
     idOriginal: buildingIdOriginal,
     elevation: elevation,
     models: relPaths
-  });
+  };
+
+  if (wof) {
+    footprintProperties.wof = wof;
+  }
+
+  // Add GeoJSON outline of footprint (if available)
+  var footprint = getFootprint(xmlDOM, origin, footprintProperties);
 
   if (footprint) {
     var _outputPath = path.join(outputPath, buildingId + '.geojson');

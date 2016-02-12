@@ -33,8 +33,8 @@ var processFile = function(inputFile, options) {
     console.log('Elevation endpoint: %j', options.elevationEndpoint);
   }
 
-  if (options.wofEndpoint) {
-    console.log('Who\'s on First endpoint: %j', options.wofEndpoint);
+  if (options.wof) {
+    console.log('Who\'s on First endpoint: %j', options.wof);
   }
 
   console.log('Output directory: %j', program.output);

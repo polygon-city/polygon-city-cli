@@ -65,6 +65,7 @@ var setupQueues = function() {
   createQueue('repairBuilding', 3);
   createQueue('triangulateBuilding', 3);
   createQueue('buildingElevation', 5);
+  createQueue('whosOnFirst', 1);
   createQueue('buildingObj', 3);
   createQueue('convertObj', 3);
   createQueue('geojsonIndex', 1);

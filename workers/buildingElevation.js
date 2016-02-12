@@ -13,6 +13,7 @@ var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var buildingObjQueue = Queue('building_obj_queue', redisPort, redisHost);
+var whosOnFirstQueue = Queue('whos_on_first_queue', redisPort, redisHost);
 
 var exiting = false;
 
@@ -110,6 +111,8 @@ var worker = function(job, done) {
   // Convert coordinates from SRS to WGS84 [lon, lat]
   var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
 
+  var queue = (data.wofEndpoint) ? whosOnFirstQueue : buildingObjQueue;
+
   // Skip external elevation API if ground elevation is provided
   if (maxGroundElevation) {
     // Append data onto job payload
@@ -119,7 +122,7 @@ var worker = function(job, done) {
       elevation: maxGroundElevation
     });
 
-    buildingObjQueue.add(data).then(function() {
+    queue.add(data).then(function() {
       done();
     });
   } else {
@@ -156,7 +159,7 @@ var worker = function(job, done) {
           elevation: elevation
         });
 
-        buildingObjQueue.add(data).then(function() {
+        queue.add(data).then(function() {
           done();
         });
       } catch(err) {
