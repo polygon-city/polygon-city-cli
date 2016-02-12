@@ -98,9 +98,11 @@ var foreman = {
     checkJobCompletion();
   },
 
-  startJob: function(inputPath, outputPath, epsgCode, mapzenKey, prefix) {
+  startJob: function(options) {
     setupQueues();
     checkJobCompletion();
+
+    console.log(options);
 
     // Generate unique ID for the file
     var id = UUID.v4();
@@ -109,7 +111,7 @@ var foreman = {
     // Add job to jobs list
     redis.rpush('polygoncity:jobs', id);
 
-    getProj4Def(epsgCode).then(function(proj4def) {
+    getProj4Def(options.epsgCode).then(function(proj4def) {
       if (!proj4def) {
         var err = new Error('Unable to find Proj4 definition for EPSG code ' + epsgCode);
         console.error(chalk.red(err));
@@ -121,12 +123,14 @@ var foreman = {
       // Start everything going...
       streamBuildingsQueue.add({
         id: id,
-        prefix: prefix,
-        inputPath: inputPath,
-        outputPath: outputPath,
-        epsgCode: epsgCode,
+        prefix: options.prefix,
+        inputPath: options.inputPath,
+        outputPath: options.outputPath,
+        epsgCode: options.epsgCode,
         proj4def: proj4def,
-        mapzenKey: mapzenKey
+        mapzenKey: options.mapzenKey,
+        elevationEndpoint: options.elevationEndpoint,
+        wofEndpoint: options.wofEndpoint
       });
     }).catch(function(err) {
       console.error(chalk.red(err));

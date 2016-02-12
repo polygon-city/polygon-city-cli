@@ -104,7 +104,7 @@ var worker = function(job, done) {
       return;
     }
   });
-  
+
   var projection = proj4.defs('EPSG:ORIGIN', proj4def);
 
   // Convert coordinates from SRS to WGS84 [lon, lat]
@@ -123,7 +123,7 @@ var worker = function(job, done) {
       done();
     });
   } else {
-    var url = 'https://elevation.mapzen.com/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
+    var url = data.elevationEndpoint + '/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
 
     // Retreive elevation via API
     request(url).then(function(response) {

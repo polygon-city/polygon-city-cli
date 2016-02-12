@@ -29,6 +29,14 @@ var processFile = function(inputFile, options) {
     console.log('Prefix: %j', options.prefix);
   }
 
+  if (options.elevationEndpoint) {
+    console.log('Elevation endpoint: %j', options.elevationEndpoint);
+  }
+
+  if (options.wofEndpoint) {
+    console.log('Who\'s on First endpoint: %j', options.wofEndpoint);
+  }
+
   console.log('Output directory: %j', program.output);
   console.log('Input: %j', inputFile);
 
@@ -62,7 +70,15 @@ var processFile = function(inputFile, options) {
     console.log(chalk.green(util.inspect(inputPath)));
 
     // Kick off processing job
-    foreman.startJob(path.join(inputPath.dir, inputPath.base), path.normalize(options.output), options.epsg, options.mapzen, options.prefix);
+    foreman.startJob({
+      inputPath: path.join(inputPath.dir, inputPath.base),
+      outputPath: path.normalize(options.output),
+      epsgCode: options.epsg,
+      mapzenKey: options.mapzen,
+      prefix: options.prefix,
+      elevationEndpoint: options.elevation || 'https://elevation.mapzen.com',
+      wofEndpoint: options.wof
+    });
   }).catch(function(err) {
     console.error(chalk.red('Exiting:', err.message));
     process.exit(1);
@@ -79,6 +95,8 @@ program
   .option('-e, --epsg [code]', 'EPSG code for input data')
   .option('-m, --mapzen [key]', 'Mapzen Elevation API key')
   .option('-p, --prefix [prefix]', 'Prefix for building IDs')
+  .option('-el, --elevation [url]', 'Elevation endpoint')
+  .option('-w, --wof [url]', 'Who\'s On First endpoint')
   .option('-o, --output [directory]', 'Output directory')
   .action(processFile);
 
