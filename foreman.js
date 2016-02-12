@@ -175,7 +175,14 @@ var onExit = function(quitChildren) {
       child.kill('SIGINT');
     });
 
-    process.exit(1);
+    setTimeout(function() {
+      // Forcefully exit anything not already shut down
+      processes.forEach(function(child) {
+        child.kill('SIGKILL');
+      });
+
+      process.exit(1);
+    }, 5000);
   }
 };
 
