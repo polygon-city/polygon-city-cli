@@ -131,10 +131,12 @@ var worker = function(job, done) {
       activeJob = false;
 
       // Add building ID to failed buildings set
-      redis.sadd('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+      redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
         // Increment failed building count
         return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
-          done(err);
+          // Even though the model failed, don't pass on error otherwise job
+          // will fail and prevent overall completion (due to a failed job)
+          done();
         });
       });
     });

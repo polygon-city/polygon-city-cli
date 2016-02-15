@@ -149,8 +149,16 @@ var checkJobCompletion = function() {
     result.forEach(function(id) {
       redis.hget('polygoncity:job:' + id, 'completed').then(function(completed) {
         if (completed == 1) {
-          redis.del('polygoncity:job:' + id);
-          redis.lrem('polygoncity:jobs', 0, id);
+          // Output failures
+          redis.lrange('polygoncity:job:' + id + ':buildings_failed', 0, -1).then(function(failures) {
+            failures.forEach(function(failure) {
+              console.error(chalk.yellow('Building ' + failure + ' failed to process'));
+            });
+
+            redis.del('polygoncity:job:' + id);
+            redis.del('polygoncity:job:' + id + ':buildings_failed');
+            redis.lrem('polygoncity:jobs', 0, id);
+          });
         }
       });
     });
