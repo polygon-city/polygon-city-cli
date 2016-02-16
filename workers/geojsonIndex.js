@@ -33,7 +33,7 @@ var getFootprint = function(xmlDOM, origin, properties) {
   // Add origin to properties
   properties.origin = origin;
 
-  if (!groundSurfaces && groundSurfaces.length === 0) {
+  if (!groundSurfaces || groundSurfaces.length === 0) {
     return turf.point(origin, properties);
   }
 
@@ -165,6 +165,16 @@ var worker = function(job, done) {
     });
   } else {
     console.log(chalk.red('Unable to find footprint for building:', buildingId));
+
+    // Add building ID to failed buildings set
+    redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+      // Increment failed building count
+      return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+        // Even though the model failed, don't pass on error otherwise job
+        // will fail and prevent overall completion (due to a failed job)
+        done();
+      });
+    });
   }
 };
 
