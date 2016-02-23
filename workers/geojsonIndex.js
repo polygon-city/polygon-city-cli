@@ -137,7 +137,7 @@ var worker = function(job, done) {
   var footprint = getFootprint(xmlDOM, origin, footprintProperties);
 
   if (footprint) {
-    var _outputPath = path.join(outputPath, buildingId + '.geojson');
+    var _outputPath = path.join(outputPath, 'buildings', buildingId, buildingId + '.geojson');
 
     // Save footprint as a single GeoJSON
     fs.outputFileAsync(_outputPath, JSON.stringify(footprint)).then(function() {

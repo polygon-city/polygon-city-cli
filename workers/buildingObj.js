@@ -27,7 +27,7 @@ var worker = function(job, done) {
   var origin = data.origin;
   var elevation = data.elevation;
 
-  var outputPath = path.join(data.outputPath, "/models/", buildingId + '.obj');
+  var outputPath = path.join(data.outputPath, '/buildings/', buildingId, buildingId + '.obj');
 
   // Create OBJ using polygons and faces
   var objStr = polygons2obj(polygons, faces, origin, elevation, true);
