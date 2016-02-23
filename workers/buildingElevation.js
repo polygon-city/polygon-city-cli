@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var chalk = require('chalk');
 var DOMParser = require('xmldom').DOMParser;
 var domParser = new DOMParser();
@@ -12,8 +12,12 @@ var citygmlPoints = require('citygml-points');
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var buildingObjQueue = Queue('building_obj_queue', redisPort, redisHost);
-var whosOnFirstQueue = Queue('whos_on_first_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -111,7 +115,7 @@ var worker = function(job, done) {
   // Convert coordinates from SRS to WGS84 [lon, lat]
   var coords = proj4('EPSG:ORIGIN').inverse([origin[0], origin[1]]);
 
-  var queue = (data.wofEndpoint) ? whosOnFirstQueue : buildingObjQueue;
+  var queueName = (data.wofEndpoint) ? 'whos_on_first_queue' : 'building_obj_queue';
 
   // Skip external elevation API if ground elevation is provided
   if (maxGroundElevation) {
@@ -122,7 +126,7 @@ var worker = function(job, done) {
       elevation: maxGroundElevation
     });
 
-    queue.add(data).then(function() {
+    queue.create(queueName, data).save(function() {
       done();
     });
   } else {
@@ -159,7 +163,7 @@ var worker = function(job, done) {
           elevation: elevation
         });
 
-        queue.add(data).then(function() {
+        queue.create(queueName, data).save(function() {
           done();
         });
       } catch(err) {
@@ -182,7 +186,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting buildingElevation worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);

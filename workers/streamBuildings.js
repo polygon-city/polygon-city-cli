@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var fs = require('fs');
 var sax = require('sax');
 var saxpath = require('saxpath');
@@ -21,7 +21,12 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var redis = new Redis(redisPort, redisHost);
 
-var repairBuildingQueue = Queue('repair_building_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 var readStream;
@@ -66,10 +71,15 @@ var worker = function(job, done) {
 
   var saxStream = new saxpath.SaXPath(saxParser, '//bldg:Building');
 
+  // var count = 0;
   saxStream.on('match', function(xml) {
     if (exiting) {
       return;
     }
+
+    // if (++count > 100) {
+    //   return;
+    // }
 
     var xmlDOM = domParser.parseFromString(xml);
 
@@ -94,8 +104,10 @@ var worker = function(job, done) {
         xml: xml
       });
 
+      // console.log(buildingId);
+
       // Add building to processing queue
-      repairBuildingQueue.add(newData).then(function() {
+      queue.create('repair_building_queue', newData).save(function() {
         // Add building ID to streamed buildings set
         redis.sadd('polygoncity:job:' + id + ':streamed_buildings', buildingId);
 
@@ -145,10 +157,6 @@ var onExit = function() {
   exiting = true;
 
   readStream.pause();
-
-  setTimeout(function() {
-    process.exit(1);
-  }, 1000);
 };
 
 process.on('SIGINT', onExit);

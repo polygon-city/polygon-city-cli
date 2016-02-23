@@ -1,12 +1,17 @@
 var _ = require('lodash');
-var Queue = require('bull');
+var kue = require('kue');
 var chalk = require('chalk');
 var triangulate = require('triangulate');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var buildingElevationQueue = Queue('building_elevation_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -43,7 +48,7 @@ var worker = function(job, done) {
     faces: allFaces
   });
 
-  buildingElevationQueue.add(data).then(function() {
+  queue.create('building_elevation_queue', data).save(function() {
     done();
   });
 };
@@ -51,7 +56,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting triangulateBuilding worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);

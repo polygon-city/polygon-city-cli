@@ -1,5 +1,5 @@
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var _ = require('lodash');
 var chalk = require('chalk');
 
@@ -11,7 +11,12 @@ var citygmlValidateShell = Promise.promisify(require('citygml-validate-shell'));
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var triangulateBuildingQueue = Queue('triangulate_building_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -88,7 +93,7 @@ var worker = function(job, done) {
       flipFaces: results.flipFaces
     });
 
-    triangulateBuildingQueue.add(data).then(function() {
+    queue.create('triangulate_building_queue', data).save(function() {
       done();
     });
   }).catch(function(err) {
@@ -100,7 +105,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting repairBuilding worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);

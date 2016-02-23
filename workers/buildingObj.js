@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var chalk = require('chalk');
 var polygons2obj = require('polygons-to-obj');
 var path = require('path');
@@ -9,7 +9,12 @@ var fs = Promise.promisifyAll(require('fs-extra'));
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var convertObjQueue = Queue('convert_obj_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -36,7 +41,7 @@ var worker = function(job, done) {
       objPath: outputPath
     });
 
-    convertObjQueue.add(data).then(function() {
+    queue.create('convert_obj_queue', data).save(function() {
       done();
     });
   }).catch(function(err) {
@@ -48,7 +53,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting buildingObj worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);

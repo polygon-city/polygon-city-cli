@@ -21,7 +21,6 @@
   "license": "MIT",
   "dependencies": {
     "bluebird": "^3.0.6",
-    "bull": "^0.6.0",
     "chalk": "^1.1.1",
     "citygml-boundaries": "^0.1.1",
     "citygml-points": "^0.1.1",
@@ -31,6 +30,7 @@
     "fs-extra": "^0.26.2",
     "ioredis": "^1.14.0",
     "jxon": "^1.6.1",
+    "kue": "^0.10.5",
     "lodash": "^3.10.1",
     "model-converter": "0.0.5",
     "polygons-to-obj": "^0.1.6",

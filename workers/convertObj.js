@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var chalk = require('chalk');
 var path = require('path');
 var fs = require('fs');
@@ -13,7 +13,12 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var redis = new Redis(redisPort, redisHost);
 
-var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 var activeJob = false;
@@ -121,7 +126,7 @@ var worker = function(job, done) {
         convertedPaths: outputPaths
       });
 
-      geojsonIndexQueue.add(data).then(function() {
+      queue.create('geojson_index_queue', data).save(function() {
         activeJob = false;
         done();
       });
@@ -148,8 +153,6 @@ var onExit = function() {
 
   // Keep process active until job is complete
   exitAfterJob();
-
-  // process.exit(1);
 };
 
 var exitAfterJob = function() {

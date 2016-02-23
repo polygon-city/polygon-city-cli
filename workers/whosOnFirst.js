@@ -1,13 +1,18 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var Queue = require('bull');
+var kue = require('kue');
 var chalk = require('chalk');
 var request = Promise.promisify(require('request'), {multiArgs: true});
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
-var buildingObjQueue = Queue('building_obj_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -45,7 +50,7 @@ var worker = function(job, done) {
         wof: results
       });
 
-      buildingObjQueue.add(data).then(function() {
+      queue.create('building_obj_queue', data).save(function() {
         done();
       });
     } catch(err) {
@@ -67,7 +72,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting whosOnFirst worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);

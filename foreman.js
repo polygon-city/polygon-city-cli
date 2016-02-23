@@ -1,14 +1,12 @@
-// TODO: Quit after the entire queue has been cleared and converted
-//
-// Need to work out how to detect this
-
-var Queue = require('bull');
+var kue = require('kue');
 var Promise = require('bluebird');
 var UUID = require('uuid');
 var chalk = require('chalk');
 var childProcess = require('child_process');
 var request = Promise.promisify(require('request'), {multiArgs: true});
 var Redis = require('ioredis');
+var path = require('path');
+var fs = require('fs-extra');
 
 var onQueueFailed = function(job, err) {
   console.error(chalk.red(err));
@@ -29,22 +27,35 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var redis = new Redis(redisPort, redisHost);
 
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
+
 var streamBuildingsQueue;
 var processes = [];
 
 var exiting = false;
 
 var setupQueues = function() {
-  // Set stream queue up manually as otherwise the worker triggers an error
-  streamBuildingsQueue = Queue('stream_buildings_queue', redisPort, redisHost);
-
-  streamBuildingsQueue.on('failed', onQueueFailed);
-  streamBuildingsQueue.on('completed', onCompleted);
-  // Likely a problem connecting to Redis
-  streamBuildingsQueue.on('error', onQueueError);
+  // Global handler to remove completed jobs
+  queue.on('job complete', function(id, result){
+    kue.Job.get(id, function(err, job){
+      if (err) return;
+      job.remove(function(err){
+        if (err) throw err;
+        // console.log('Removed completed job #%d', job.id);
+      });
+    });
+  });
 
   var streamBuildingsWorker = require(__dirname + '/workers/streamBuildings');
-  streamBuildingsQueue.process(streamBuildingsWorker);
+
+  queue.process('stream_buildings_queue', function(job, done) {
+    streamBuildingsWorker(job, done);
+  });
 
   // Wrapper for spawning queues in separate processes
   //
@@ -62,12 +73,12 @@ var setupQueues = function() {
     }
   };
 
-  createQueue('repairBuilding', 3);
+  createQueue('repairBuilding', 6);
   createQueue('triangulateBuilding', 3);
   createQueue('buildingElevation', 5);
   createQueue('whosOnFirst', 1);
   createQueue('buildingObj', 3);
-  createQueue('convertObj', 3);
+  createQueue('convertObj', 6);
   createQueue('geojsonIndex', 1);
 };
 
@@ -112,6 +123,9 @@ var foreman = {
     // Add job to jobs list
     redis.rpush('polygoncity:jobs', id);
 
+    // Add output path to job
+    redis.hset('polygoncity:job:' + id, 'output_path', options.outputPath);
+
     getProj4Def(options.epsgCode).then(function(proj4def) {
       if (!proj4def) {
         var err = new Error('Unable to find Proj4 definition for EPSG code ' + epsgCode);
@@ -122,7 +136,7 @@ var foreman = {
       console.log('Proj4 definition:', proj4def);
 
       // Start everything going...
-      streamBuildingsQueue.add({
+      queue.create('stream_buildings_queue', {
         id: id,
         prefix: options.prefix,
         inputPath: options.inputPath,
@@ -132,7 +146,7 @@ var foreman = {
         mapzenKey: options.mapzenKey,
         elevationEndpoint: options.elevationEndpoint,
         wofEndpoint: options.wofEndpoint
-      });
+      }).save();
     }).catch(function(err) {
       console.error(chalk.red(err));
       onExit();
@@ -155,6 +169,13 @@ var checkJobCompletion = function() {
               console.error(chalk.yellow('Building ' + failure + ' failed to process'));
             });
 
+            if (failures.length > 0) {
+              redis.hget('polygoncity:job:' + id, 'output_path').then(function(outputPath) {
+                var _outputPath = path.join(outputPath, 'failures.json');
+                fs.outputFileSync(_outputPath, JSON.stringify(failures));
+              });
+            }
+
             redis.del('polygoncity:job:' + id);
             redis.del('polygoncity:job:' + id + ':buildings_failed');
             redis.lrem('polygoncity:jobs', 0, id);
@@ -174,26 +195,50 @@ var checkJobCompletion = function() {
   });
 };
 
+// process.once('SIGINT', function(sig) {
+//   console.log(chalk.red('Exiting...'));
+//   queue.shutdown(5000, function(err) {
+//     console.log('Kue shutdown: ', err || '');
+//     process.exit(0);
+//   });
+// });
+
 var onExit = function(quitChildren) {
   console.log(chalk.red('Exiting...'));
   exiting = true;
 
-  if (quitChildren) {
+  // Exit queues
+  queue.shutdown(5000, function(err) {
+    console.log('Kue shutdown');
+
+    // Forcefully exit anything not already shut down
     processes.forEach(function(child) {
-      child.kill('SIGINT');
+      child.kill('SIGKILL');
     });
 
-    setTimeout(function() {
-      // Forcefully exit anything not already shut down
-      processes.forEach(function(child) {
-        child.kill('SIGKILL');
-      });
+    if (err) {
+      console.error(chalk.red(err));
+    }
 
-      process.exit(1);
-    }, 5000);
-  }
+    process.exit(1);
+  });
+
+  // if (quitChildren) {
+  //   processes.forEach(function(child) {
+  //     child.kill('SIGINT');
+  //   });
+  //
+  //   setTimeout(function() {
+  //     // Forcefully exit anything not already shut down
+  //     processes.forEach(function(child) {
+  //       child.kill('SIGKILL');
+  //     });
+  //
+  //     process.exit(1);
+  //   }, 5000);
+  // }
 };
 
-process.on('SIGINT', onExit);
+process.once('SIGINT', onExit);
 
 module.exports = foreman;

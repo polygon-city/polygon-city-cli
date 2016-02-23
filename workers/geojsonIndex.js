@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var Queue = require('bull');
+var kue = require('kue');
 var Promise = require('bluebird');
 var chalk = require('chalk');
 var DOMParser = require('xmldom').DOMParser;
@@ -20,7 +20,12 @@ var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
 
 var redis = new Redis(redisPort, redisHost);
 
-var geojsonIndexQueue = Queue('geojson_index_queue', redisPort, redisHost);
+var queue = kue.createQueue({
+  redis: {
+    port: redisPort,
+    host: redisHost,
+  }
+});
 
 var exiting = false;
 
@@ -33,24 +38,31 @@ var getFootprint = function(xmlDOM, origin, properties) {
   // Add origin to properties
   properties.origin = origin;
 
+  var point = turf.point(origin, properties);
+
   if (!groundSurfaces || groundSurfaces.length === 0) {
-    return turf.point(origin, properties);
+    return point;
   }
 
-  var points;
-  var polygons = [];
-  for (var i = 0; i < groundSurfaces.length; i++) {
-    points = citygmlPoints(groundSurfaces[i]).map((point) => {
-      return proj4('EPSG:ORIGIN').inverse([point[0], point[1]]);
-    });
+  try {
+    var points;
+    var polygons = [];
+    for (var i = 0; i < groundSurfaces.length; i++) {
+      points = citygmlPoints(groundSurfaces[i]).map((point) => {
+        return proj4('EPSG:ORIGIN').inverse([point[0], point[1]]);
+      });
 
-    polygons.push(turf.polygon([points], properties));
+      polygons.push(turf.polygon([points], properties));
+    }
+
+    var featureCollection = turf.featurecollection(polygons);
+    var polygon = turf.merge(featureCollection);
+
+    return polygon;
+  } catch(err) {
+    console.error(chalk.red(err));
+    return point;
   }
-
-  var featureCollection = turf.featurecollection(polygons);
-  var polygon = turf.merge(featureCollection);
-
-  return polygon;
 };
 
 var createFootprintIndex = function(id, outputPath) {
@@ -138,7 +150,7 @@ var worker = function(job, done) {
             // Get failed buildings count
             redis.hget('polygoncity:job:' + id, 'buildings_count_failed').then(function(failedCount) {
               // All jobs completed
-              if ((finalCount - failedCount) == finalJobCount) {
+              if (Number(finalJobCount) + Number(failedCount) == Number(finalCount)) {
                 // Compile GeoJSON index of footprints
                 createFootprintIndex(id, outputPath).then(function() {
                   console.log(chalk.green('Saved GeoJSON index:', outputPath));
@@ -181,7 +193,6 @@ var worker = function(job, done) {
 var onExit = function() {
   console.log(chalk.red('Exiting geojsonIndex worker...'));
   exiting = true;
-  // process.exit(1);
 };
 
 process.on('SIGINT', onExit);
