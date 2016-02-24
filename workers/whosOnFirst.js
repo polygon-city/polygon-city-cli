@@ -42,6 +42,7 @@ var worker = function(job, done) {
       if (results.length === 0) {
         var err = new Error('Who\'s on First results not present in API response');
         console.error(err);
+        console.log(body);
         done(err);
         return;
       }
@@ -57,6 +58,7 @@ var worker = function(job, done) {
     } catch(err) {
       var err = new Error('Unexpected Who\'s on First data response' + ((err.message) ? ': ' + err.message : ''));
       console.error(err);
+      console.log(body);
       done(err);
       return;
     }

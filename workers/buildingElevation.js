@@ -140,6 +140,7 @@ var worker = function(job, done) {
       if (res.statusCode != 200) {
         var err = new Error('Unexpected elevation data response, HTTP: ' + res.statusCode);
         console.error(err);
+        console.log(body);
         done(err);
         return;
       }
@@ -150,6 +151,7 @@ var worker = function(job, done) {
         if (!bodyJSON.height || bodyJSON.height.length === 0) {
           var err = new Error('Elevation values not present in API response');
           console.error(err);
+          console.log(body);
           done(err);
           return;
         }
@@ -169,6 +171,7 @@ var worker = function(job, done) {
       } catch(err) {
         var err = new Error('Unexpected elevation data response' + ((err.message) ? ': ' + err.message : ''));
         console.error(err);
+        console.log(body);
         done(err);
         return;
       }
