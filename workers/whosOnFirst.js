@@ -31,6 +31,7 @@ var worker = function(job, done) {
     if (res.statusCode != 200) {
       var err = new Error('Unexpected response, HTTP: ' + res.statusCode);
       console.error(err);
+      console.log(body);
       done(err);
       return;
     }
