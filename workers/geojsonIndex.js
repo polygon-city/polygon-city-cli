@@ -115,7 +115,7 @@ var worker = function(job, done) {
   var elevation = data.elevation;
   var wof = data.wof;
   var attribution = data.attribution;
-  var attributionlicense = data.license;
+  var license = data.license;
   var modelPaths = [data.objPath].concat(data.convertedPaths);
 
   var xmlDOM = domParser.parseFromString(xml);
@@ -135,7 +135,7 @@ var worker = function(job, done) {
     footprintProperties.wof = wof;
   }
 
-  if (license) {
+  if (attribution) {
     footprintProperties.attribution = attribution;
   }
 
