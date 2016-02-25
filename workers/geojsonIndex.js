@@ -196,7 +196,7 @@ var worker = function(job, done) {
 
 var failBuilding = function(id, buildingId, done, err) {
   // Add building ID to failed buildings set
-  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', JSON.stringify({id: buildingId, error: err.message})).then(function() {
     // Increment failed building count
     return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
       // Even though the model failed, don't pass on error otherwise job

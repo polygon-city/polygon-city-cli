@@ -168,7 +168,8 @@ var checkJobCompletion = function() {
           // Output failures
           redis.lrange('polygoncity:job:' + id + ':buildings_failed', 0, -1).then(function(failures) {
             failures.forEach(function(failure) {
-              console.error(chalk.yellow('Building ' + failure + ' failed to process'));
+              var failObj = JSON.parse(failure);
+              console.error(chalk.yellow('Building ' + failObj.id + ' failed to process due to ' + failObj.error));
             });
 
             if (failures.length > 0) {
