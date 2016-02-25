@@ -114,6 +114,8 @@ var worker = function(job, done) {
   var origin = data.originWGS84;
   var elevation = data.elevation;
   var wof = data.wof;
+  var attribution = data.attribution;
+  var attributionlicense = data.license;
   var modelPaths = [data.objPath].concat(data.convertedPaths);
 
   var xmlDOM = domParser.parseFromString(xml);
@@ -131,6 +133,14 @@ var worker = function(job, done) {
 
   if (wof) {
     footprintProperties.wof = wof;
+  }
+
+  if (license) {
+    footprintProperties.attribution = attribution;
+  }
+
+  if (license) {
+    footprintProperties.license = license;
   }
 
   // Add GeoJSON outline of footprint (if available)

@@ -88,6 +88,16 @@ var worker = function(job, done) {
       }
 
       var jsonStr = '# ' + JSON.stringify(metadata) + '\n';
+
+      var licenseObjStr = '';
+      if (data.attribution) {
+        licenseObjStr += '# Attribution: ' + data.attribution + '\n';
+      }
+
+      if (data.license) {
+        licenseObjStr += '# License: ' + data.license + '\n';
+      }
+
       var originObjStr = '# Longitude: ' + data.originWGS84[0] + '\n# Latitude: ' + data.originWGS84[1] + '\n';
       var elevationObjStr = '# Elevation: ' + data.elevation + '\n\n';
 
@@ -100,7 +110,7 @@ var worker = function(job, done) {
 
         if (outputPath.endsWith('.obj')) {
           // If obj, inject origin as comment at top
-          newModelData = jsonStr + originObjStr + elevationObjStr + modelData.toString();
+          newModelData = jsonStr + originObjStr + elevationObjStr + licenseObjStr + modelData.toString();
         } else if (outputPath.endsWith('.dae')) {
           // If collada, convert to XML and inject origin somewhere sane
           jxonObj = JXON.stringToJs(modelData.toString());
@@ -108,6 +118,15 @@ var worker = function(job, done) {
           jxonObj.collada.asset.longitude = data.originWGS84[0];
           jxonObj.collada.asset.latitude = data.originWGS84[1];
           jxonObj.collada.asset.elevation = data.elevation;
+
+          if (data.attribution) {
+            jxonObj.collada.asset.attribution = data.attribution;
+          }
+
+          if (data.license) {
+            jxonObj.collada.asset.license = data.license;
+          }
+
           jxonObj.collada.asset.metadata = JSON.stringify(metadata);
 
           newModelData = JXON.jsToString(jxonObj);

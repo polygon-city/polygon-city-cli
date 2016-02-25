@@ -8,9 +8,12 @@ var xmldom2xml = require('xmldom-to-xml');
 var proj4 = require('proj4');
 var request = Promise.promisify(require('request'), {multiArgs: true});
 var citygmlPoints = require('citygml-points');
+var Redis = require('ioredis');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var queue = kue.createQueue({
   redis: {
@@ -24,6 +27,8 @@ var exiting = false;
 var worker = function(job, done) {
   var data = job.data;
 
+  var id = data.id;
+  var buildingId = data.buildingId;
   var xml = data.xml;
   var xmlDOM = domParser.parseFromString(xml);
   var polygons = data.polygons;
@@ -43,25 +48,31 @@ var worker = function(job, done) {
 
   var zUP = true;
 
-  // Find highest ground surface for elevation origin
-  var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
+  try {
+    // Find highest ground surface for elevation origin
+    var groundSurfaces = xmldom2xml(xmlDOM.getElementsByTagName('bldg:GroundSurface'));
 
-  if (groundSurfaces && groundSurfaces.length > 0) {
-    var maxGroundElevation;
-    var maxGroundIndex;
+    if (groundSurfaces && groundSurfaces.length > 0) {
+      var maxGroundElevation;
+      var maxGroundIndex;
 
-    groundSurfaces.forEach(function(groundSurface, gsIndex) {
-      var gsPoints = citygmlPoints(groundSurface);
+      groundSurfaces.forEach(function(groundSurface, gsIndex) {
+        var gsPoints = citygmlPoints(groundSurface);
 
-      gsPoints.forEach(function(gsPoint) {
-        if (!maxGroundElevation || gsPoint[2] > maxGroundElevation) {
-          maxGroundElevation = gsPoint[2];
-          maxGroundIndex = gsIndex;
+        gsPoints.forEach(function(gsPoint) {
+          if (!maxGroundElevation || gsPoint[2] > maxGroundElevation) {
+            maxGroundElevation = gsPoint[2];
+            maxGroundIndex = gsIndex;
 
-          return false;
-        }
+            return false;
+          }
+        });
       });
-    });
+    }
+  } catch(err) {
+    console.error(err);
+    failBuilding(id, buildingId, done);
+    return;
   }
 
   // Vertical can be either Y (1) or Z (2)
@@ -141,7 +152,7 @@ var worker = function(job, done) {
         var err = new Error('Unexpected elevation data response, HTTP: ' + res.statusCode);
         console.error(err);
         console.log(body);
-        done(err);
+        failBuilding(id, buildingId, done);
         return;
       }
 
@@ -152,7 +163,7 @@ var worker = function(job, done) {
           var err = new Error('Elevation values not present in API response');
           console.error(err);
           console.log(body);
-          done(err);
+          failBuilding(id, buildingId, done);
           return;
         }
 
@@ -172,18 +183,30 @@ var worker = function(job, done) {
         var err = new Error('Unexpected elevation data response' + ((err.message) ? ': ' + err.message : ''));
         console.error(err);
         console.log(body);
-        done(err);
+        failBuilding(id, buildingId, done);
         return;
       }
     }).catch(function(err) {
       if (err) {
         var err = new Error('Unable to retrieve elevation data' + ((err.message) ? ': ' + err.message : ''));
         console.error(err);
-        done(err);
+        failBuilding(id, buildingId, done);
         return;
       }
     });
   }
+};
+
+var failBuilding = function(id, buildingId, done) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
+  });
 };
 
 var onExit = function() {

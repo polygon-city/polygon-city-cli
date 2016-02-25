@@ -145,7 +145,9 @@ var foreman = {
         proj4def: proj4def,
         mapzenKey: options.mapzenKey,
         elevationEndpoint: options.elevationEndpoint,
-        wofEndpoint: options.wofEndpoint
+        wofEndpoint: options.wofEndpoint,
+        attribution: options.attribution,
+        license: options.license
       }).save();
     }).catch(function(err) {
       console.error(chalk.red(err));
