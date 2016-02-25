@@ -3,9 +3,12 @@ var Promise = require('bluebird');
 var kue = require('kue');
 var chalk = require('chalk');
 var request = Promise.promisify(require('request'), {multiArgs: true});
+var Redis = require('ioredis');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var queue = kue.createQueue({
   redis: {
@@ -18,6 +21,8 @@ var exiting = false;
 
 var worker = function(job, done) {
   var data = job.data;
+  var id = data.id;
+  var buildingId = data.buildingId;
 
   var origin = data.originWGS84;
 
@@ -32,7 +37,7 @@ var worker = function(job, done) {
       var err = new Error('Unexpected response, HTTP: ' + res.statusCode);
       console.error(err);
       console.log(body);
-      done(err);
+      failBuilding(id, buildingId, done, err);
       return;
     }
 
@@ -43,7 +48,7 @@ var worker = function(job, done) {
         var err = new Error('Who\'s on First results not present in API response');
         console.error(err);
         console.log(body);
-        done(err);
+        failBuilding(id, buildingId, done, err);
         return;
       }
 
@@ -59,16 +64,28 @@ var worker = function(job, done) {
       var err = new Error('Unexpected Who\'s on First data response' + ((err.message) ? ': ' + err.message : ''));
       console.error(err);
       console.log(body);
-      done(err);
+      failBuilding(id, buildingId, done, err);
       return;
     }
   }).catch(function(err) {
     if (err) {
       var err = new Error('Unable to retrieve Who\'s on First data' + ((err.message) ? ': ' + err.message : ''));
       console.error(err);
-      done(err);
+      failBuilding(id, buildingId, done, err);
       return;
     }
+  });
+};
+
+var failBuilding = function(id, buildingId, done, err) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
   });
 };
 

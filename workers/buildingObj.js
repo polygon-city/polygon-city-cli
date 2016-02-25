@@ -5,9 +5,12 @@ var chalk = require('chalk');
 var polygons2obj = require('polygons-to-obj');
 var path = require('path');
 var fs = Promise.promisifyAll(require('fs-extra'));
+var Redis = require('ioredis');
 
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var queue = kue.createQueue({
   redis: {
@@ -21,6 +24,7 @@ var exiting = false;
 var worker = function(job, done) {
   var data = job.data;
 
+  var id = data.id;
   var buildingId = data.buildingId;
   var polygons = data.polygons;
   var faces = data.faces;
@@ -46,7 +50,20 @@ var worker = function(job, done) {
     });
   }).catch(function(err) {
     console.error(err);
-    done(err);
+    failBuilding(id, buildingId, done, err);
+    return;
+  });
+};
+
+var failBuilding = function(id, buildingId, done, err) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
   });
 };
 

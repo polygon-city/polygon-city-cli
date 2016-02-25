@@ -110,7 +110,7 @@ var worker = function(job, done) {
 
         if (outputPath.endsWith('.obj')) {
           // If obj, inject origin as comment at top
-          newModelData = jsonStr + originObjStr + elevationObjStr + licenseObjStr + modelData.toString();
+          newModelData = jsonStr + licenseObjStr + originObjStr + elevationObjStr + modelData.toString();
         } else if (outputPath.endsWith('.dae')) {
           // If collada, convert to XML and inject origin somewhere sane
           jxonObj = JXON.stringToJs(modelData.toString());
@@ -153,17 +153,21 @@ var worker = function(job, done) {
     .catch(function(err) {
       console.error(err);
       activeJob = false;
-
-      // Add building ID to failed buildings set
-      redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
-        // Increment failed building count
-        return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
-          // Even though the model failed, don't pass on error otherwise job
-          // will fail and prevent overall completion (due to a failed job)
-          done();
-        });
-      });
+      failBuilding(id, buildingId, done, err);
+      return;
     });
+};
+
+var failBuilding = function(id, buildingId, done, err) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
+  });
 };
 
 var onExit = function() {

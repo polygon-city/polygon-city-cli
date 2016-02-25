@@ -66,7 +66,7 @@ var worker = function(job, done) {
   saxParser.on('error', streamErrorHandler);
 
   saxParser.on('end', function() {
-    console.error("Parser ended");
+    console.log('Parser ended');
   });
 
   var saxStream = new saxpath.SaXPath(saxParser, '//bldg:Building');

@@ -186,18 +186,24 @@ var worker = function(job, done) {
       });
     });
   } else {
-    console.log(chalk.red('Unable to find footprint for building:', buildingId));
+    var err = new Error('Unable to find footprint for building');
+    console.log(chalk.red(err));
 
-    // Add building ID to failed buildings set
-    redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
-      // Increment failed building count
-      return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
-        // Even though the model failed, don't pass on error otherwise job
-        // will fail and prevent overall completion (due to a failed job)
-        done();
-      });
-    });
+    failBuilding(id, buildingId, done, err);
+    return;
   }
+};
+
+var failBuilding = function(id, buildingId, done, err) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
+  });
 };
 
 var onExit = function() {

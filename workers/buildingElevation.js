@@ -39,7 +39,7 @@ var worker = function(job, done) {
   if (!valhallaKey) {
     var err = new Error('No Valhalla key was provided to retrieve elevation');
     console.error(err);
-    done(err);
+    failBuilding(id, buildingId, done, err);
     return;
   }
 
@@ -71,7 +71,7 @@ var worker = function(job, done) {
     }
   } catch(err) {
     console.error(err);
-    failBuilding(id, buildingId, done);
+    failBuilding(id, buildingId, done, err);
     return;
   }
 
@@ -152,7 +152,7 @@ var worker = function(job, done) {
         var err = new Error('Unexpected elevation data response, HTTP: ' + res.statusCode);
         console.error(err);
         console.log(body);
-        failBuilding(id, buildingId, done);
+        failBuilding(id, buildingId, done, err);
         return;
       }
 
@@ -163,7 +163,7 @@ var worker = function(job, done) {
           var err = new Error('Elevation values not present in API response');
           console.error(err);
           console.log(body);
-          failBuilding(id, buildingId, done);
+          failBuilding(id, buildingId, done, err);
           return;
         }
 
@@ -183,21 +183,21 @@ var worker = function(job, done) {
         var err = new Error('Unexpected elevation data response' + ((err.message) ? ': ' + err.message : ''));
         console.error(err);
         console.log(body);
-        failBuilding(id, buildingId, done);
+        failBuilding(id, buildingId, done, err);
         return;
       }
     }).catch(function(err) {
       if (err) {
         var err = new Error('Unable to retrieve elevation data' + ((err.message) ? ': ' + err.message : ''));
         console.error(err);
-        failBuilding(id, buildingId, done);
+        failBuilding(id, buildingId, done, err);
         return;
       }
     });
   }
 };
 
-var failBuilding = function(id, buildingId, done) {
+var failBuilding = function(id, buildingId, done, err) {
   // Add building ID to failed buildings set
   redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
     // Increment failed building count

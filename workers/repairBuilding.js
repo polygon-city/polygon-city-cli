@@ -8,8 +8,12 @@ var citygmlBoundaries = require('citygml-boundaries');
 var citygmlPoints = require('citygml-points');
 var citygmlValidateShell = Promise.promisify(require('citygml-validate-shell'));
 
+var Redis = require('ioredis');
+
 var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.01';
 var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || 6379;
+
+var redis = new Redis(redisPort, redisHost);
 
 var queue = kue.createQueue({
   redis: {
@@ -67,6 +71,7 @@ var repair = function(polygons, validationResults) {
 
 var worker = function(job, done) {
   var data = job.data;
+  var id = data.id;
   var xml = data.xml;
   var buildingId = data.buildingId;
 
@@ -98,7 +103,20 @@ var worker = function(job, done) {
     });
   }).catch(function(err) {
     console.error(err);
-    done(err);
+    failBuilding(id, buildingId, done, err);
+    return;
+  });
+};
+
+var failBuilding = function(id, buildingId, done, err) {
+  // Add building ID to failed buildings set
+  redis.rpush('polygoncity:job:' + id + ':buildings_failed', buildingId).then(function() {
+    // Increment failed building count
+    return redis.hincrby('polygoncity:job:' + id, 'buildings_count_failed', 1).then(function() {
+      // Even though the model failed, don't pass on error otherwise job
+      // will fail and prevent overall completion (due to a failed job)
+      done();
+    });
   });
 };
 
