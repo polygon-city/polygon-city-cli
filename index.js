@@ -23,7 +23,7 @@ var checkFile = function(file) {
 
 var processFile = function(inputFile, options) {
   console.log('EPSG: %j', options.epsg);
-  console.log('Mapzen key: %j', options.mapzen);
+  console.log('Elevation key: %j', options.elevationKey);
 
   if (options.prefix) {
     console.log('Prefix: %j', options.prefix);
@@ -35,6 +35,10 @@ var processFile = function(inputFile, options) {
 
   if (options.wof) {
     console.log('Who\'s on First endpoint: %j', options.wof);
+  }
+
+  if (options.wofKey) {
+    console.log('Who\'s on First key: %j', options.wofKey);
   }
 
   if (options.license) {
@@ -63,7 +67,7 @@ var processFile = function(inputFile, options) {
   }
 
   // Check Mapzen key
-  if (!options.mapzen) {
+  if (!options.elevationKey) {
     console.error(chalk.red('Exiting: Mapzen Elevation key not specified'));
     process.exit(1);
   }
@@ -78,10 +82,11 @@ var processFile = function(inputFile, options) {
       inputPath: path.join(inputPath.dir, inputPath.base),
       outputPath: path.normalize(options.output),
       epsgCode: options.epsg,
-      mapzenKey: options.mapzen,
+      elevationKey: options.elevationKey,
       prefix: options.prefix,
       elevationEndpoint: options.elevation || 'https://elevation.mapzen.com',
       wofEndpoint: options.wof,
+      wofKey: options.wofKey,
       attribution: options.attribution,
       license: options.license
     });
@@ -98,11 +103,12 @@ var resumeJobs = function() {
 program
   .version('0.0.1')
   .usage('[options] <input file>')
-  .option('-e, --epsg [code]', 'EPSG code for input data')
-  .option('-m, --mapzen [key]', 'Mapzen Elevation API key')
+  .option('-c, --epsg [code]', 'EPSG code for input data')
   .option('-p, --prefix [prefix]', 'Prefix for building IDs')
-  .option('-el, --elevation [url]', 'Elevation endpoint')
+  .option('-e, --elevation [url]', 'Elevation endpoint')
+  .option('-E, --elevationKey [key]', 'Mapzen Elevation API key')
   .option('-w, --wof [url]', 'Who\'s On First endpoint')
+  .option('-W, --wofKey [key]', 'Mapzen Who\'s on First API key')
   .option('-a, --attribution [attribution]', 'Attribution text')
   .option('-l, --license [license]', 'License text')
   .option('-o, --output [directory]', 'Output directory')

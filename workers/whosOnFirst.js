@@ -26,7 +26,8 @@ var worker = function(job, done) {
 
   var origin = data.originWGS84;
 
-  var url = data.wofEndpoint + '/?latitude=' + origin[1] + '&longitude=' + origin[0];
+  var wofKey = (data.wofKey) ? data.wofKey : '';
+  var url = data.wofEndpoint + '/?latitude=' + origin[1] + '&longitude=' + origin[0] + '&api_key=' + wofKey;
 
   // Retreive Who's on First results via API
   request(url).then(function(response) {

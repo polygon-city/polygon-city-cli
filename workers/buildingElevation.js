@@ -33,11 +33,11 @@ var worker = function(job, done) {
   var xmlDOM = domParser.parseFromString(xml);
   var polygons = data.polygons;
 
-  var valhallaKey = data.mapzenKey;
+  var elevationKey = data.elevationKey;
   var proj4def = data.proj4def;
 
-  if (!valhallaKey) {
-    var err = new Error('No Valhalla key was provided to retrieve elevation');
+  if (!elevationKey) {
+    var err = new Error('No elevation key was provided');
     console.error(err);
     failBuilding(id, buildingId, done, err);
     return;
@@ -141,7 +141,7 @@ var worker = function(job, done) {
       done();
     });
   } else {
-    var url = data.elevationEndpoint + '/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + valhallaKey;
+    var url = data.elevationEndpoint + '/height?json={%22shape%22:[{%22lat%22:' + coords[1] + ',%22lon%22:' + coords[0] + '}]}&api_key=' + elevationKey;
 
     // Retreive elevation via API
     request(url).then(function(response) {

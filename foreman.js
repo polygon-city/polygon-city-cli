@@ -76,7 +76,7 @@ var setupQueues = function() {
   createQueue('repairBuilding', 3);
   createQueue('triangulateBuilding', 3);
   createQueue('buildingElevation', 5);
-  createQueue('whosOnFirst', 1);
+  createQueue('whosOnFirst', 3);
   createQueue('buildingObj', 3);
   createQueue('convertObj', 4);
   createQueue('geojsonIndex', 1);
@@ -143,9 +143,10 @@ var foreman = {
         outputPath: options.outputPath,
         epsgCode: options.epsgCode,
         proj4def: proj4def,
-        mapzenKey: options.mapzenKey,
+        elevationKey: options.elevationKey,
         elevationEndpoint: options.elevationEndpoint,
         wofEndpoint: options.wofEndpoint,
+        wofKey: options.wofKey,
         attribution: options.attribution,
         license: options.license
       }).save();
