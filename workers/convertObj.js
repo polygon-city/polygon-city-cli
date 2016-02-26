@@ -52,13 +52,13 @@ var worker = function(job, done) {
   var input = objPath;
 
   // First convert as obj to clean things up
-  var output = path.join(pathComponents.dir, pathComponents.name + ".obj");
+  var output = path.join(pathComponents.dir, pathComponents.name + '.obj');
 
   // Queue up conversions to other formats
   var outputs = [];
-  outputs.push(path.join(pathComponents.dir, pathComponents.name + ".dae"));
-  // outputs.push(path.join(pathComponents.dir, pathComponents.name + ".ply"));
-  // // outputs.push(path.join(pathComponents.dir, pathComponents.name + ".gltf"));
+  outputs.push(path.join(pathComponents.dir, pathComponents.name + '.dae'));
+  // outputs.push(path.join(pathComponents.dir, pathComponents.name + '.ply'));
+  // // outputs.push(path.join(pathComponents.dir, pathComponents.name + '.gltf'));
 
   // First convert as obj to clean things up
   modelConverter.convert(input, output)
@@ -87,7 +87,7 @@ var worker = function(job, done) {
         metadata.wof = data.wof;
       }
 
-      var jsonStr = '# ' + JSON.stringify(metadata) + '\n';
+      var jsonStr = '# ' + JSON.stringify(metadata) + '\n\n';
 
       var licenseObjStr = '';
       if (data.attribution) {
@@ -111,6 +111,12 @@ var worker = function(job, done) {
         if (outputPath.endsWith('.obj')) {
           // If obj, inject origin as comment at top
           newModelData = jsonStr + licenseObjStr + originObjStr + elevationObjStr + modelData.toString();
+
+          // Pull out mtl string
+          newModelData = newModelData.replace(/mtllib .*\n/, '');
+
+          // Delete mtl file
+          fs.unlinkSync(outputPath + '.mtl');
         } else if (outputPath.endsWith('.dae')) {
           // If collada, convert to XML and inject origin somewhere sane
           jxonObj = JXON.stringToJs(modelData.toString());
