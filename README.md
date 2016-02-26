@@ -17,7 +17,7 @@ $ npm install polygon-city-cli@latest -g
 Processing a new CityGML file:
 
 ```bash
-$ polygon-city -e <epsg_code> -m <mapzen_elevation_key> -o /path/to/obj/output/directory /path/to/cityGml/file.xml
+$ polygon-city -c <epsg_code> -E <mapzen_elevation_key> -o /path/to/obj/output/directory /path/to/cityGml/file.xml
 ```
 
 Resuming previous unfinished jobs:
@@ -35,5 +35,5 @@ $ polygon-city resume
 5. Run the command line tool:
 
 ```bash
-$ polygon-city -e 31255 -m "your_mapzen_key" -o /path/to/obj/output/directory /path/to/cityGml/file.xml
+$ polygon-city -c 31255 -E "your_mapzen_elevation_key" -o /path/to/obj/output/directory /path/to/cityGml/file.xml
 ```
