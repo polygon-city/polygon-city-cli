@@ -133,7 +133,7 @@ var worker = function(job, done) {
             jxonObj.collada.asset.license = data.license;
           }
 
-          jxonObj.collada.asset.metadata = JSON.stringify(metadata);
+          jxonObj.collada.asset.properties = JSON.stringify(metadata);
 
           newModelData = JXON.jsToString(jxonObj);
         }
