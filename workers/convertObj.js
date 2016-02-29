@@ -87,7 +87,7 @@ var worker = function(job, done) {
         metadata.wof = data.wof;
       }
 
-      var jsonStr = '# ' + JSON.stringify(metadata) + '\n\n';
+      var jsonStr = '# Properties: ' + JSON.stringify(metadata) + '\n\n';
 
       var licenseObjStr = '';
       if (data.attribution) {
