@@ -139,7 +139,7 @@ var worker = function(job, done) {
 
         done();
       });
-    }, 100);
+    }, 5000);
   });
 
   // Wrap in a domain to catch errors
