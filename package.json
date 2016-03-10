@@ -1,7 +1,7 @@
 {
   "name": "polygon-city-cli",
   "version": "0.1.27",
-  "description": "Polygon City CLI",
+  "description": "Converts a CityGML file into GeoJSON footprint indexes and 3D models (obj & collada)",
   "homepage": "https://github.com/polygon-city/polygon-city-cli",
   "preferGlobal": true,
   "bin": {
