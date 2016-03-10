@@ -1,5 +1,7 @@
 # Polygon City CLI
 
+Converts a CityGML file into GeoJSON footprint indexes and 3D models (obj & collada)
+
 ## Requirements
 
 1. npm and Node v5 (https://nodejs.org/dist/v5.2.0/node-v5.2.0.pkg)
